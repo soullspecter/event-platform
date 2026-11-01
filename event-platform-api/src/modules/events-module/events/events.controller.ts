@@ -77,4 +77,12 @@ export class EventsController {
     remove(@Param('id', ParseIntPipe) id: number) {
         return this.eventsService.remove(id);
     }
+
+    // Список черновиков для администратора.
+    @Get('drafts')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    findDrafts() {
+        return this.eventsService.findDrafts();
+    }
 }

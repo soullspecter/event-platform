@@ -12,9 +12,6 @@ export class LocationsService {
         private readonly locationsRepository: Repository<Location>,
     ) {}
 
-    // Создание физической локации.
-    // Если точно такая же локация (по нормализованным name/place/address) уже есть,
-    // возвращается существующая — дубликаты не создаются.
     async create(dto: SaveLocationDto) {
         const name = dto.name?.trim() || null;
         const place = dto.place?.trim() || null;

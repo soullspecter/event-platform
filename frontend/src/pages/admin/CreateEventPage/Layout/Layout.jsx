@@ -1,317 +1,280 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { Check, ChevronRight, Save, Send } from 'lucide-react'
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Check, ChevronRight, Save, Send } from 'lucide-react';
 
-import { eventsApi } from '../../../../shared/api/eventsApi'
+import { eventsApi } from '../../../../shared/api/eventsApi';
 
-import BasicInfo from '../BasicInfo/BasicInfo'
-import { buildBasicInfoPayload } from '../BasicInfo/BasicInfo.payload'
+import BasicInfo from '../BasicInfo/BasicInfo';
+import { buildBasicInfoPayload } from '../BasicInfo/BasicInfo.payload';
 
-import Venues from '../Vanues/Venues'
-import { buildVenuesPayload } from '../Vanues/Venues.payload'
+import Venues from '../Vanues/Venues';
+import { buildVenuesPayload } from '../Vanues/Venues.payload';
 
-import Schedule from '../Schedule/Schedule'
-import { buildSchedulePayload } from '../Schedule/Schedule.payload'
+import Schedule from '../Schedule/Schedule';
+import { buildSchedulePayload } from '../Schedule/Schedule.payload';
 
-import {
-	getArray,
-	getEventId,
-	normalizeEvent,
-	normalizeVenue,
-	normalizeScheduleItem,
-} from '../Utils/eventForm.utils'
+import { getArray, getEventId, normalizeEvent, normalizeVenue, normalizeScheduleItem } from '../Utils/eventForm.utils';
 
-import './Layout.scss'
+import './Layout.scss';
 
 function buildPayload(event, venues, schedule) {
-	return {
-		...buildBasicInfoPayload(event),
-		venues: buildVenuesPayload(venues),
-		schedule: buildSchedulePayload(schedule),
-	}
+    return {
+        ...buildBasicInfoPayload(event),
+        venues: buildVenuesPayload(venues),
+        schedule: buildSchedulePayload(schedule),
+    };
 }
 
 const EMPTY_EVENT = {
-	title: '',
-	description: '',
-	startDate: '',
-	endDate: '',
-	status: 'draft',
-}
+    title: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    status: 'draft',
+};
 
 const TABS = [
-	{ id: 'info', label: 'Общая информация', number: '01' },
-	{ id: 'venues', label: 'Площадки', number: '02' },
-	{ id: 'schedule', label: 'Расписание', number: '03' },
-]
+    { id: 'info', label: 'Общая информация', number: '01' },
+    { id: 'venues', label: 'Площадки', number: '02' },
+    { id: 'schedule', label: 'Расписание', number: '03' },
+];
 
 export default function Layout({ eventId: propEventId }) {
-	const params = useParams()
-	const routeEventId = propEventId ?? params.eventId ?? params.id ?? null
+    const params = useParams();
+    const navigate = useNavigate();
 
-	const [currentEventId, setCurrentEventId] = useState(routeEventId)
-	const [activeTab, setActiveTab] = useState('info')
+    const routeEventId = propEventId ?? params.eventId ?? params.id ?? null;
 
-	const [event, setEvent] = useState(EMPTY_EVENT)
-	const [venues, setVenues] = useState([])
-	const [schedule, setSchedule] = useState([])
-	const [locations, setLocations] = useState([])
+    const [currentEventId, setCurrentEventId] = useState(routeEventId);
+    const [activeTab, setActiveTab] = useState('info');
 
-	const [loading, setLoading] = useState(Boolean(routeEventId))
-	const [saving, setSaving] = useState(false)
-	const [error, setError] = useState('')
-	const [notice, setNotice] = useState('')
+    const [event, setEvent] = useState(EMPTY_EVENT);
+    const [venues, setVenues] = useState([]);
+    const [schedule, setSchedule] = useState([]);
+    const [locations, setLocations] = useState([]);
 
-	useEffect(() => {
-		let active = true
+    const [loading, setLoading] = useState(Boolean(routeEventId));
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
 
-		async function load() {
-			setError('')
-			setNotice('')
-			setCurrentEventId(routeEventId)
-			setEvent(EMPTY_EVENT)
-			setVenues([])
-			setSchedule([])
-			setLoading(true)
+    useEffect(() => {
+        let active = true;
 
-			try {
-				const locationData = await eventsApi.getLocations()
+        async function load() {
+            setError('');
+            setNotice('');
+            setCurrentEventId(routeEventId);
+            setEvent(EMPTY_EVENT);
+            setVenues([]);
+            setSchedule([]);
+            setLoading(true);
 
-				if (!active) return
+            try {
+                const locationData = await eventsApi.getLocations();
 
-				const loadedLocations =
-					getArray(locationData, 'items').length > 0
-						? getArray(locationData, 'items')
-						: getArray(locationData, 'locations').length > 0
-							? getArray(locationData, 'locations')
-							: Array.isArray(locationData)
-								? locationData
-								: []
+                if (!active) return;
 
-				setLocations(loadedLocations)
+                const loadedLocations =
+                    getArray(locationData, 'items').length > 0
+                        ? getArray(locationData, 'items')
+                        : getArray(locationData, 'locations').length > 0
+                          ? getArray(locationData, 'locations')
+                          : Array.isArray(locationData)
+                            ? locationData
+                            : [];
 
-				if (!routeEventId) return
+                setLocations(loadedLocations);
 
-				const response = await eventsApi.getForManagement(routeEventId)
+                if (!routeEventId) return;
 
-				if (!active) return
+                const response = await eventsApi.getForManagement(routeEventId);
 
-				const data =
-					response?.event ?? response?.data?.event ?? response?.data ?? response
+                if (!active) return;
 
-				setEvent(normalizeEvent(data))
-				setVenues(getArray(data, 'venues').map(normalizeVenue))
-				setSchedule(getArray(data, 'schedule').map(normalizeScheduleItem))
-			} catch (err) {
-				if (active) {
-					setError(err.message || 'Не удалось загрузить мероприятие')
-				}
-			} finally {
-				if (active) setLoading(false)
-			}
-		}
+                const data = response?.event ?? response?.data?.event ?? response?.data ?? response;
 
-		load()
+                setEvent(normalizeEvent(data));
+                setVenues(getArray(data, 'venues').map(normalizeVenue));
+                setSchedule(getArray(data, 'schedule').map(normalizeScheduleItem));
+            } catch (err) {
+                if (active) {
+                    setError(err.message || 'Не удалось загрузить мероприятие');
+                }
+            } finally {
+                if (active) setLoading(false);
+            }
+        }
 
-		return () => {
-			active = false
-		}
-	}, [routeEventId])
+        load();
 
-	async function handleSave(publish = false) {
-		if (saving) return
+        return () => {
+            active = false;
+        };
+    }, [routeEventId]);
 
-		setError('')
-		setNotice('')
-		setSaving(true)
+    async function handleSave(publish = false) {
+        if (saving) return;
 
-		try {
-			const payload = buildPayload(event, venues, schedule)
+        setError('');
+        setNotice('');
+        setSaving(true);
 
-			const response = currentEventId
-				? await eventsApi.updateDraft(currentEventId, payload)
-				: await eventsApi.createDraft(payload)
+        try {
+            const payload = buildPayload(event, venues, schedule);
 
-			const savedId = getEventId(response) ?? currentEventId
+            const response = currentEventId ? await eventsApi.updateDraft(currentEventId, payload) : await eventsApi.createDraft(payload);
 
-			if (!savedId) {
-				throw new Error('Сервер не вернул идентификатор мероприятия.')
-			}
+            const savedId = getEventId(response) ?? currentEventId;
 
-			setCurrentEventId(savedId)
+            if (!savedId) {
+                throw new Error('Сервер не вернул идентификатор мероприятия.');
+            }
 
-			if (publish) {
-				await eventsApi.publishEvent(savedId)
+            const isNew = !currentEventId;
 
-				setEvent(previous => ({
-					...previous,
-					status: 'published',
-				}))
+            setCurrentEventId(savedId);
 
-				setNotice('Мероприятие успешно опубликовано.')
-			} else {
-				setNotice('Мероприятие успешно сохранено.')
-			}
-		} catch (err) {
-			setError(err.message || 'Не удалось сохранить мероприятие.')
-		} finally {
-			setSaving(false)
-		}
-	}
+            // После первого сохранения нового мероприятия подменяем URL,
+            // чтобы при перезагрузке страницы черновик подтягивался по id.
+            if (isNew) {
+                navigate(`/events/${savedId}/edit`, { replace: true });
+            }
 
-	if (loading) {
-		return (
-			<div className='event-editor__loading'>
-				<span className='event-editor__spinner' />
-				Загружаем мероприятие…
-			</div>
-		)
-	}
+            if (publish) {
+                await eventsApi.publishEvent(savedId);
 
-	return (
-		<main className='event-editor'>
-			<div className='event-editor__top'>
-				<div className='event-editor__heading'>
-					<h1>
-						{currentEventId
-							? 'Редактирование мероприятия'
-							: 'Создание мероприятия'}
-					</h1>
-				</div>
-			</div>
+                setEvent((previous) => ({
+                    ...previous,
+                    status: 'published',
+                }));
 
-			{error && (
-				<div className='event-editor__alert event-editor__alert--error'>
-					{error}
-				</div>
-			)}
+                setNotice('Мероприятие успешно опубликовано.');
+            } else {
+                setNotice('Мероприятие успешно сохранено.');
+            }
+        } catch (err) {
+            setError(err.message || 'Не удалось сохранить мероприятие.');
+        } finally {
+            setSaving(false);
+        }
+    }
 
-			{notice && (
-				<div className='event-editor__alert event-editor__alert--success'>
-					<Check size={18} />
-					{notice}
-				</div>
-			)}
+    if (loading) {
+        return (
+            <div className="event-editor__loading">
+                <span className="event-editor__spinner" />
+                Загружаем мероприятие…
+            </div>
+        );
+    }
 
-			<div className='event-editor__workspace'>
-				<nav className='event-editor__tabs' aria-label='Разделы мероприятия'>
-					{TABS.map(tab => {
-						const isActive = activeTab === tab.id
+    return (
+        <main className="event-editor">
+            <div className="event-editor__top">
+                <div className="event-editor__heading">
+                    <h1>{currentEventId ? 'Редактирование мероприятия' : 'Создание мероприятия'}</h1>
+                </div>
+            </div>
 
-						const isComplete =
-							(tab.id === 'info' &&
-								event.title.trim() &&
-								event.startDate &&
-								event.endDate) ||
-							(tab.id === 'venues' && venues.length > 0) ||
-							(tab.id === 'schedule' && schedule.length > 0)
+            {error && <div className="event-editor__alert event-editor__alert--error">{error}</div>}
 
-						return (
-							<button
-								type='button'
-								key={tab.id}
-								className={[
-									'event-editor__tab',
-									isActive && 'is-active',
-									isComplete && 'is-complete',
-								]
-									.filter(Boolean)
-									.join(' ')}
-								onClick={() => setActiveTab(tab.id)}
-							>
-								<span className='event-editor__tab-number'>
-									{isComplete && !isActive ? <Check size={15} /> : tab.number}
-								</span>
+            {notice && (
+                <div className="event-editor__alert event-editor__alert--success">
+                    <Check size={18} />
+                    {notice}
+                </div>
+            )}
 
-								<span className='event-editor__tab-label'>{tab.label}</span>
+            <div className="event-editor__workspace">
+                <nav className="event-editor__tabs" aria-label="Разделы мероприятия">
+                    {TABS.map((tab) => {
+                        const isActive = activeTab === tab.id;
 
-								<ChevronRight className='event-editor__tab-chevron' size={18} />
-							</button>
-						)
-					})}
-				</nav>
+                        const isComplete =
+                            (tab.id === 'info' && event.title.trim() && event.startDate && event.endDate) ||
+                            (tab.id === 'venues' && venues.length > 0) ||
+                            (tab.id === 'schedule' && schedule.length > 0);
 
-				<section className='event-editor__panel'>
-					{activeTab === 'info' && (
-						<div className='event-editor__tab-content'>
-							<div className='event-editor__section-heading'>
-								<div className='event-editor__section-icon'>
-									<span>✦</span>
-								</div>
-								<div>
-									<h2>Общая информация</h2>
-									<p>Основные сведения о вашем мероприятии.</p>
-								</div>
-							</div>
+                        return (
+                            <button
+                                type="button"
+                                key={tab.id}
+                                className={['event-editor__tab', isActive && 'is-active', isComplete && 'is-complete'].filter(Boolean).join(' ')}
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                <span className="event-editor__tab-number">{isComplete && !isActive ? <Check size={15} /> : tab.number}</span>
 
-							<BasicInfo event={event} onChange={setEvent} />
-						</div>
-					)}
+                                <span className="event-editor__tab-label">{tab.label}</span>
 
-					{activeTab === 'venues' && (
-						<div className='event-editor__tab-content'>
-							<div className='event-editor__section-heading'>
-								<div className='event-editor__section-icon event-editor__section-icon--pink'>
-									<span>⌖</span>
-								</div>
-								<div>
-									<h2>Площадки</h2>
-								</div>
-							</div>
+                                <ChevronRight className="event-editor__tab-chevron" size={18} />
+                            </button>
+                        );
+                    })}
+                </nav>
 
-							<Venues
-								venues={venues}
-								onChange={setVenues}
-								locations={locations}
-								event={event}
-							/>
-						</div>
-					)}
+                <section className="event-editor__panel">
+                    {activeTab === 'info' && (
+                        <div className="event-editor__tab-content">
+                            <div className="event-editor__section-heading">
+                                <div className="event-editor__section-icon">
+                                    <span>✦</span>
+                                </div>
+                                <div>
+                                    <h2>Общая информация</h2>
+                                    <p>Основные сведения о вашем мероприятии.</p>
+                                </div>
+                            </div>
 
-					{activeTab === 'schedule' && (
-						<div className='event-editor__tab-content'>
-							<div className='event-editor__section-heading'>
-								<div className='event-editor__section-icon event-editor__section-icon--blue'>
-									<span>◷</span>
-								</div>
-								<div>
-									<h2>Расписание</h2>
-								</div>
-							</div>
+                            <BasicInfo event={event} onChange={setEvent} />
+                        </div>
+                    )}
 
-							<Schedule event={event} items={schedule} onChange={setSchedule} />
-						</div>
-					)}
-				</section>
-			</div>
+                    {activeTab === 'venues' && (
+                        <div className="event-editor__tab-content">
+                            <div className="event-editor__section-heading">
+                                <div className="event-editor__section-icon event-editor__section-icon--pink">
+                                    <span>⌖</span>
+                                </div>
+                                <div>
+                                    <h2>Площадки</h2>
+                                </div>
+                            </div>
 
-			<footer className='event-editor__bottom-bar'>
-				<div className='event-editor__bottom-actions'>
-					<button
-						type='button'
-						className='event-editor__save'
-						disabled={saving}
-						onClick={() => handleSave(false)}
-					>
-						<Save size={17} />
-						{saving ? 'Сохранение…' : 'Сохранить черновик'}
-					</button>
+                            <Venues venues={venues} onChange={setVenues} locations={locations} event={event} />
+                        </div>
+                    )}
 
-					<button
-						type='button'
-						className='event-editor__publish'
-						disabled={saving || event.status === 'published'}
-						onClick={() => handleSave(true)}
-					>
-						<Send size={17} />
-						{saving
-							? 'Обработка…'
-							: event.status === 'published'
-								? 'Уже опубликовано'
-								: 'Опубликовать'}
-					</button>
-				</div>
-			</footer>
-		</main>
-	)
+                    {activeTab === 'schedule' && (
+                        <div className="event-editor__tab-content">
+                            <div className="event-editor__section-heading">
+                                <div className="event-editor__section-icon event-editor__section-icon--blue">
+                                    <span>◷</span>
+                                </div>
+                                <div>
+                                    <h2>Расписание</h2>
+                                </div>
+                            </div>
+
+                            <Schedule event={event} items={schedule} onChange={setSchedule} />
+                        </div>
+                    )}
+                </section>
+            </div>
+
+            <footer className="event-editor__bottom-bar">
+                <div className="event-editor__bottom-actions">
+                    <button type="button" className="event-editor__save" disabled={saving} onClick={() => handleSave(false)}>
+                        <Save size={17} />
+                        {saving ? 'Сохранение…' : 'Сохранить черновик'}
+                    </button>
+
+                    <button type="button" className="event-editor__publish" disabled={saving || event.status === 'published'} onClick={() => handleSave(true)}>
+                        <Send size={17} />
+                        {saving ? 'Обработка…' : event.status === 'published' ? 'Уже опубликовано' : 'Опубликовать'}
+                    </button>
+                </div>
+            </footer>
+        </main>
+    );
 }

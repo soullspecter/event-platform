@@ -1,0 +1,138 @@
+.drafts-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px;
+
+    &__header {
+        margin-bottom: 24px;
+
+        h1 {
+            margin: 0 0 8px;
+        }
+
+        p {
+            margin: 0;
+            color: #6b7280;
+        }
+    }
+
+    &__loading {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 32px;
+    }
+
+    &__spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #d1d5db;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: drafts-spin 0.8s linear infinite;
+    }
+
+    @keyframes drafts-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    &__alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+
+        &--error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+    }
+
+    &__empty {
+        text-align: center;
+        padding: 64px 16px;
+        color: #6b7280;
+
+        h3 {
+            margin: 12px 0 4px;
+            color: #111827;
+        }
+
+        p {
+            margin: 0;
+        }
+    }
+
+    &__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    &__item {
+        width: 100%;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 16px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        cursor: pointer;
+        text-align: left;
+        transition:
+            border-color 0.15s,
+            box-shadow 0.15s;
+
+        &:hover {
+            border-color: #93c5fd;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+        }
+    }
+
+    &__item-icon {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        background: #eff6ff;
+        color: #2563eb;
+        border-radius: 10px;
+    }
+
+    &__item-body {
+        flex: 1;
+        min-width: 0;
+
+        strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #111827;
+        }
+
+        p {
+            margin: 0 0 6px;
+            color: #4b5563;
+            font-size: 14px;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        small {
+            color: #6b7280;
+        }
+    }
+
+    &__item-chevron {
+        flex-shrink: 0;
+        color: #9ca3af;
+        align-self: center;
+    }
+}

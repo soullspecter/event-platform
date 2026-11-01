@@ -616,10 +616,6 @@ export class EventsService {
                     throw new BadRequestException(`Укажите название локации для площадки «${venue.name}»`);
                 }
 
-                if (!location.place?.trim()) {
-                    throw new BadRequestException(`Укажите место расположения локации «${location.name}»`);
-                }
-
                 if (!location.address?.trim()) {
                     throw new BadRequestException(`Укажите адрес  локации «${location.name}»`);
                 }
@@ -634,10 +630,6 @@ export class EventsService {
         const schedule = await scheduleRepository.find({
             where: { eventId },
         });
-
-        if (schedule.length === 0) {
-            throw new BadRequestException('Добавьте хотя бы один пункт расписания');
-        }
 
         for (const item of schedule) {
             if (!item.description?.trim()) {
@@ -724,5 +716,15 @@ export class EventsService {
             venues: detailedVenues,
             schedule,
         };
+    }
+
+    // Список всех черновиков (для администратора).
+    async findDrafts() {
+        return this.eventsRepository.find({
+            where: { status: 'draft' },
+            order: {
+                eventId: 'DESC',
+            },
+        });
     }
 }
