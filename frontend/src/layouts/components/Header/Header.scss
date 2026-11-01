@@ -1,0 +1,286 @@
+.topbar {
+    position: sticky;
+    z-index: 20;
+    top: 0;
+
+    display: flex;
+    min-height: 80px;
+    align-items: center;
+    gap: 48px;
+
+    padding: 14px 56px;
+    border-bottom: 1px solid var(--color-border);
+
+    background: rgb(255 255 255 / 88%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+
+    &__brand {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 11px;
+
+        color: var(--color-text);
+        text-decoration: none;
+    }
+
+    &__brand-name {
+        font-family: var(--font-family-heading);
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+
+    &__nav {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        gap: 8px;
+    }
+
+    &__link {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        gap: 10px;
+
+        padding: 0 16px;
+        border-radius: 14px;
+
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+
+        transition:
+            background var(--transition-fast),
+            color var(--transition-fast);
+
+        &:hover {
+            background: var(--gradient-soft);
+            color: var(--color-primary-hover);
+        }
+
+        &--active {
+            background: var(--color-primary-soft);
+            color: var(--color-primary-hover);
+        }
+
+        &:focus-visible {
+            outline: 3px solid rgb(121 84 246 / 35%);
+            outline-offset: 3px;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    &__profile-link {
+        display: inline-flex;
+        min-width: 0;
+        align-items: center;
+        gap: 10px;
+
+        padding: 7px 12px 7px 7px;
+        border: 1px solid var(--color-border);
+        border-radius: 999px;
+
+        background: var(--color-surface);
+        color: var(--color-text);
+        font-size: 14px;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+
+        transition:
+            border-color var(--transition-fast),
+            background var(--transition-fast);
+
+        &:hover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-soft);
+        }
+
+        &:focus-visible {
+            outline: 3px solid rgb(121 84 246 / 35%);
+            outline-offset: 3px;
+        }
+    }
+
+    &__profile-avatar {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        place-items: center;
+
+        border-radius: 50%;
+        background: var(--gradient-primary);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    &__login {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+
+        padding: 0 20px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+
+        background: var(--gradient-primary);
+        box-shadow: 0 6px 18px rgb(121 84 246 / 20%);
+        color: #fff;
+
+        font-family: inherit;
+        font-size: var(--font-size-sm);
+        font-weight: 700;
+        white-space: nowrap;
+        cursor: pointer;
+
+        transition:
+            transform var(--transition-fast),
+            box-shadow var(--transition-fast),
+            filter var(--transition-fast);
+
+        &:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-primary);
+            filter: saturate(1.08);
+        }
+
+        &:active {
+            transform: translateY(0);
+        }
+
+        &:focus-visible {
+            outline: 3px solid rgb(121 84 246 / 35%);
+            outline-offset: 3px;
+        }
+    }
+
+    &__sidebar-toggle {
+        display: inline-grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+
+        background: var(--color-surface);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+
+        transition:
+            background var(--transition-fast),
+            color var(--transition-fast),
+            border-color var(--transition-fast);
+
+        &:hover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-soft);
+            color: var(--color-primary-hover);
+        }
+
+        &:focus-visible {
+            outline: 3px solid rgb(121 84 246 / 35%);
+            outline-offset: 3px;
+        }
+    }
+}
+
+@media (max-width: 900px) {
+    .topbar {
+        gap: 24px;
+        padding-right: 28px;
+        padding-left: 28px;
+    }
+}
+
+@media (max-width: 600px) {
+    .topbar {
+        &__brand-name {
+            font-size: 21px;
+        }
+
+        &__link {
+            min-height: 40px;
+            gap: 7px;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+
+        &__actions {
+            gap: 8px;
+        }
+
+        &__profile-link {
+            gap: 0;
+            padding: 4px;
+        }
+        &__profile-link > span:last-child {
+            display: none;
+        }
+
+        &__profile-avatar {
+            width: 32px;
+            height: 32px;
+            flex-basis: 32px;
+        }
+
+        &__login {
+            min-height: 40px;
+            gap: 7px;
+            padding: 0 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        &__sidebar-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+        }
+    }
+}
+
+@media (max-width: 380px) {
+    .topbar {
+        gap: 8px;
+        padding-right: 10px;
+        padding-left: 10px;
+
+        &__brand-name {
+            font-size: 19px;
+        }
+        &__nav {
+            gap: 4px;
+        }
+
+        &__link {
+            gap: 5px;
+            padding: 0 7px;
+            font-size: 11px;
+        }
+
+        &__actions {
+            gap: 6px;
+        }
+        &__login {
+            gap: 5px;
+            padding: 0 9px;
+        }
+    }
+}

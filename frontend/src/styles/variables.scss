@@ -1,0 +1,77 @@
+:root {
+	font-family: 'DM Sans', sans-serif;
+	color: #302344;
+	background: #fffaf8;
+
+	--color-primary: #7954f6;
+	--color-primary-hover: #6540df;
+	--color-primary-soft: #eee8ff;
+
+	--color-accent: #ff7a90;
+	--color-accent-soft: #ffe5eb;
+	--color-lavender: #f3b6ff;
+
+	--color-text: #302344;
+	--color-text-secondary: #80768d;
+	--color-background: #fffaf8;
+	--color-surface: #ffffff;
+	--color-border: #eee7f3;
+
+	--color-danger: #d94c69;
+	--color-success: #27845d;
+
+	--gradient-primary: linear-gradient(
+		135deg,
+		#7954f6 0%,
+		#a45cf5 55%,
+		#f28bc4 100%
+	);
+	--gradient-celebration: linear-gradient(
+		135deg,
+		#7855f5 0%,
+		#bd75f4 48%,
+		#ff91a8 100%
+	);
+	--gradient-soft: linear-gradient(135deg, #f0eaff 0%, #fff0f4 100%);
+	--gradient-page: linear-gradient(
+		145deg,
+		#fffaf8 0%,
+		#faf5ff 55%,
+		#fff4f6 100%
+	);
+
+	--font-family-heading: 'Manrope', sans-serif;
+	--font-family-body: 'DM Sans', sans-serif;
+
+	--font-size-xs: 12px;
+	--font-size-sm: 14px;
+	--font-size-md: 16px;
+	--font-size-lg: 20px;
+	--font-size-xl: 28px;
+
+	--radius-sm: 10px;
+	--radius-md: 16px;
+	--radius-lg: 22px;
+	--radius-xl: 30px;
+
+	--shadow-card: 0 12px 36px rgb(74 43 113 / 7%);
+	--shadow-float: 0 24px 80px rgb(57 31 91 / 18%);
+	--shadow-primary: 0 8px 24px rgb(121 84 246 / 28%);
+
+	--sidebar-width: 256px;
+	--sidebar-collapsed-width: 80px;
+
+	--transition-fast: 180ms ease;
+	--transition-normal: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+	--transition-smooth: 420ms cubic-bezier(0.22, 1, 0.36, 1);
+
+	--event-bg: #f5f6fa;
+	--event-card: #ffffff;
+	--event-text: #202536;
+	--event-muted: #737b8e;
+	--event-border: #e3e6ed;
+	--event-accent: #5b55d9;
+	--event-accent-hover: #4842c3;
+	--event-danger: #c43c4d;
+	--event-radius: 16px;
+}
