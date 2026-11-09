@@ -1,56 +1,35 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Check, ChevronRight, Save, Send } from 'lucide-react';
+import { useParams } from 'react-router-dom'; // <-- useNavigate убран
+import { Check, Save, Send } from 'lucide-react';
 
 import { eventsApi } from '../../../../shared/api/eventsApi';
+import ProgramEditor from '../ProgramEditor/ProgramEditor';
 
-import BasicInfo from '../BasicInfo/BasicInfo';
-import { buildBasicInfoPayload } from '../BasicInfo/BasicInfo.payload';
-
-import Venues from '../Vanues/Venues';
-import { buildVenuesPayload } from '../Vanues/Venues.payload';
-
-import Schedule from '../Schedule/Schedule';
-import { buildSchedulePayload } from '../Schedule/Schedule.payload';
-
-import { getArray, getEventId, normalizeEvent, normalizeVenue, normalizeScheduleItem } from '../Utils/eventForm.utils';
+import { getEventId, normalizeEvent, normalizePrograms, normalizeScheduleItem, resolveArray } from '../Utils/eventForm.utils';
+import { buildBasicInfoPayload } from '../Utils/Payloads/BasicInfo.payload';
+import { buildProgramsPayload } from '../Utils/Payloads/Programs.payload';
+import { buildSchedulePayload } from '../Utils/Payloads/Schedule.payload';
 
 import './Layout.scss';
 
-function buildPayload(event, venues, schedule) {
+const EMPTY_EVENT = { title: '', description: '', startDate: '', endDate: '', status: 'draft' };
+
+function buildPayload(event, schedule, programs) {
     return {
         ...buildBasicInfoPayload(event),
-        venues: buildVenuesPayload(venues),
         schedule: buildSchedulePayload(schedule),
+        programs: buildProgramsPayload(programs, schedule),
     };
 }
 
-const EMPTY_EVENT = {
-    title: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-    status: 'draft',
-};
-
-const TABS = [
-    { id: 'info', label: 'Общая информация', number: '01' },
-    { id: 'venues', label: 'Площадки', number: '02' },
-    { id: 'schedule', label: 'Расписание', number: '03' },
-];
-
-export default function Layout({ eventId: propEventId }) {
+export default function Layout() {
     const params = useParams();
-    const navigate = useNavigate();
-
-    const routeEventId = propEventId ?? params.eventId ?? params.id ?? null;
+    const routeEventId = params.eventId ?? params.id ?? null;
 
     const [currentEventId, setCurrentEventId] = useState(routeEventId);
-    const [activeTab, setActiveTab] = useState('info');
-
     const [event, setEvent] = useState(EMPTY_EVENT);
-    const [venues, setVenues] = useState([]);
     const [schedule, setSchedule] = useState([]);
+    const [programs, setPrograms] = useState([]);
     const [locations, setLocations] = useState([]);
 
     const [loading, setLoading] = useState(Boolean(routeEventId));
@@ -62,52 +41,38 @@ export default function Layout({ eventId: propEventId }) {
         let active = true;
 
         async function load() {
+            setLoading(true);
             setError('');
             setNotice('');
             setCurrentEventId(routeEventId);
             setEvent(EMPTY_EVENT);
-            setVenues([]);
             setSchedule([]);
-            setLoading(true);
+            setPrograms([]);
 
             try {
-                const locationData = await eventsApi.getLocations();
-
+                const locs = await eventsApi.getLocationPlaces();
                 if (!active) return;
-
-                const loadedLocations =
-                    getArray(locationData, 'items').length > 0
-                        ? getArray(locationData, 'items')
-                        : getArray(locationData, 'locations').length > 0
-                          ? getArray(locationData, 'locations')
-                          : Array.isArray(locationData)
-                            ? locationData
-                            : [];
-
-                setLocations(loadedLocations);
+                setLocations(Array.isArray(locs) ? locs : []);
 
                 if (!routeEventId) return;
 
-                const response = await eventsApi.getForManagement(routeEventId);
-
+                const data = await eventsApi.getForManagement(routeEventId);
                 if (!active) return;
 
-                const data = response?.event ?? response?.data?.event ?? response?.data ?? response;
+                const loadedSchedule = resolveArray(data, 'schedule').map(normalizeScheduleItem);
+                const loadedPrograms = normalizePrograms(resolveArray(data, 'programs'), loadedSchedule);
 
                 setEvent(normalizeEvent(data));
-                setVenues(getArray(data, 'venues').map(normalizeVenue));
-                setSchedule(getArray(data, 'schedule').map(normalizeScheduleItem));
+                setSchedule(loadedSchedule);
+                setPrograms(loadedPrograms);
             } catch (err) {
-                if (active) {
-                    setError(err.message || 'Не удалось загрузить мероприятие');
-                }
+                if (active) setError(err.message || 'Ошибка загрузки');
             } finally {
                 if (active) setLoading(false);
             }
         }
 
         load();
-
         return () => {
             active = false;
         };
@@ -115,46 +80,36 @@ export default function Layout({ eventId: propEventId }) {
 
     async function handleSave(publish = false) {
         if (saving) return;
-
         setError('');
         setNotice('');
         setSaving(true);
 
         try {
-            const payload = buildPayload(event, venues, schedule);
+            const payload = buildPayload(event, schedule, programs);
+            let savedId = currentEventId;
 
-            const response = currentEventId ? await eventsApi.updateDraft(currentEventId, payload) : await eventsApi.createDraft(payload);
+            if (currentEventId) {
+                await eventsApi.updateDraft(currentEventId, payload);
+            } else {
+                const response = await eventsApi.createDraft(payload);
+                savedId = getEventId(response);
+                if (!savedId) throw new Error('Не удалось получить ID');
 
-            const savedId = getEventId(response) ?? currentEventId;
+                setCurrentEventId(savedId);
 
-            if (!savedId) {
-                throw new Error('Сервер не вернул идентификатор мероприятия.');
-            }
-
-            const isNew = !currentEventId;
-
-            setCurrentEventId(savedId);
-
-            // После первого сохранения нового мероприятия подменяем URL,
-            // чтобы при перезагрузке страницы черновик подтягивался по id.
-            if (isNew) {
-                navigate(`/events/${savedId}/edit`, { replace: true });
+                // Меняем URL, не вызывая перемонтирование компонента React Router
+                window.history.replaceState(null, '', `/events/${savedId}/edit`);
             }
 
             if (publish) {
                 await eventsApi.publishEvent(savedId);
-
-                setEvent((previous) => ({
-                    ...previous,
-                    status: 'published',
-                }));
-
-                setNotice('Мероприятие успешно опубликовано.');
+                setEvent((prev) => ({ ...prev, status: 'published' }));
+                setNotice('Мероприятие опубликовано.');
             } else {
-                setNotice('Мероприятие успешно сохранено.');
+                setNotice('Черновик сохранён.');
             }
         } catch (err) {
-            setError(err.message || 'Не удалось сохранить мероприятие.');
+            setError(err.message || 'Ошибка сохранения');
         } finally {
             setSaving(false);
         }
@@ -164,7 +119,7 @@ export default function Layout({ eventId: propEventId }) {
         return (
             <div className="event-editor__loading">
                 <span className="event-editor__spinner" />
-                Загружаем мероприятие…
+                Загрузка...
             </div>
         );
     }
@@ -178,7 +133,6 @@ export default function Layout({ eventId: propEventId }) {
             </div>
 
             {error && <div className="event-editor__alert event-editor__alert--error">{error}</div>}
-
             {notice && (
                 <div className="event-editor__alert event-editor__alert--success">
                     <Check size={18} />
@@ -187,78 +141,18 @@ export default function Layout({ eventId: propEventId }) {
             )}
 
             <div className="event-editor__workspace">
-                <nav className="event-editor__tabs" aria-label="Разделы мероприятия">
-                    {TABS.map((tab) => {
-                        const isActive = activeTab === tab.id;
-
-                        const isComplete =
-                            (tab.id === 'info' && event.title.trim() && event.startDate && event.endDate) ||
-                            (tab.id === 'venues' && venues.length > 0) ||
-                            (tab.id === 'schedule' && schedule.length > 0);
-
-                        return (
-                            <button
-                                type="button"
-                                key={tab.id}
-                                className={['event-editor__tab', isActive && 'is-active', isComplete && 'is-complete'].filter(Boolean).join(' ')}
-                                onClick={() => setActiveTab(tab.id)}
-                            >
-                                <span className="event-editor__tab-number">{isComplete && !isActive ? <Check size={15} /> : tab.number}</span>
-
-                                <span className="event-editor__tab-label">{tab.label}</span>
-
-                                <ChevronRight className="event-editor__tab-chevron" size={18} />
-                            </button>
-                        );
-                    })}
-                </nav>
-
                 <section className="event-editor__panel">
-                    {activeTab === 'info' && (
-                        <div className="event-editor__tab-content">
-                            <div className="event-editor__section-heading">
-                                <div className="event-editor__section-icon">
-                                    <span>✦</span>
-                                </div>
-                                <div>
-                                    <h2>Общая информация</h2>
-                                    <p>Основные сведения о вашем мероприятии.</p>
-                                </div>
-                            </div>
-
-                            <BasicInfo event={event} onChange={setEvent} />
-                        </div>
-                    )}
-
-                    {activeTab === 'venues' && (
-                        <div className="event-editor__tab-content">
-                            <div className="event-editor__section-heading">
-                                <div className="event-editor__section-icon event-editor__section-icon--pink">
-                                    <span>⌖</span>
-                                </div>
-                                <div>
-                                    <h2>Площадки</h2>
-                                </div>
-                            </div>
-
-                            <Venues venues={venues} onChange={setVenues} locations={locations} event={event} />
-                        </div>
-                    )}
-
-                    {activeTab === 'schedule' && (
-                        <div className="event-editor__tab-content">
-                            <div className="event-editor__section-heading">
-                                <div className="event-editor__section-icon event-editor__section-icon--blue">
-                                    <span>◷</span>
-                                </div>
-                                <div>
-                                    <h2>Расписание</h2>
-                                </div>
-                            </div>
-
-                            <Schedule event={event} items={schedule} onChange={setSchedule} />
-                        </div>
-                    )}
+                    <div className="event-editor__tab-content">
+                        <ProgramEditor
+                            event={event}
+                            onEventChange={setEvent}
+                            schedule={schedule}
+                            programs={programs}
+                            onScheduleChange={setSchedule}
+                            onProgramsChange={setPrograms}
+                            locations={locations}
+                        />
+                    </div>
                 </section>
             </div>
 
@@ -268,7 +162,6 @@ export default function Layout({ eventId: propEventId }) {
                         <Save size={17} />
                         {saving ? 'Сохранение…' : 'Сохранить черновик'}
                     </button>
-
                     <button type="button" className="event-editor__publish" disabled={saving || event.status === 'published'} onClick={() => handleSave(true)}>
                         <Send size={17} />
                         {saving ? 'Обработка…' : event.status === 'published' ? 'Уже опубликовано' : 'Опубликовать'}

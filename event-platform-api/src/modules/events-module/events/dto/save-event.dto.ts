@@ -1,7 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsDateString, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
-
-import { SaveVenueDto } from '../../venues/dto/save-venue.dto';
+import { SaveProgramDto } from '../../programs/dto/save-program.dto';
 import { SaveScheduleItemDto } from '../../schedule/dto/save-schedule-item.dto';
 
 export class SaveEventDto {
@@ -25,14 +24,14 @@ export class SaveEventDto {
     @IsOptional()
     @IsArray()
     @ValidateNested({ each: true })
-    @Type(() => SaveVenueDto)
-    venues?: SaveVenueDto[];
+    @Type(() => SaveScheduleItemDto)
+    schedule?: SaveScheduleItemDto[];
 
     @IsOptional()
     @IsArray()
     @ValidateNested({ each: true })
-    @Type(() => SaveScheduleItemDto)
-    schedule?: SaveScheduleItemDto[];
+    @Type(() => SaveProgramDto)
+    programs?: SaveProgramDto[];
 
     @IsOptional()
     @IsBoolean()

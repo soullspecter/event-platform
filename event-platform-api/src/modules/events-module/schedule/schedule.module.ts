@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { Event } from '../../../models/events/event.entity';
-import { ScheduleItem } from '../../../models/schedule/schedule-item.entity';
+import { Event } from '../events/entity/event.entity';
+import { ScheduleItem } from './entity/schedule-item.entity';
 
 import { RolesGuard } from '../../../common/guards/roles.guard';
 

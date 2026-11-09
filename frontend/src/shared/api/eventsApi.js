@@ -68,51 +68,56 @@ function remove(path) {
 }
 
 export const eventsApi = {
-    // Создание черновика
     createDraft(payload) {
         return post('/events/drafts', payload);
     },
 
-    // Обновление черновика
     updateDraft(eventId, payload) {
         return patch(`/events/${eventId}/draft`, payload);
     },
 
-    // Публикация мероприятия
     publishEvent(eventId) {
         return post(`/events/${eventId}/publish`);
     },
 
-    // Получение мероприятия для администрирования
     getForManagement(eventId) {
         return request(`/events/${eventId}/manage`);
     },
 
-    // Получение мероприятий текущего пользователя
     getMyEvents() {
         return request('/events/mine');
     },
 
-    // Получение списка опубликованных мероприятий
     getPublished() {
         return request('/events');
     },
 
-    // Получение опубликованного мероприятия по ID
     getPublishedById(eventId) {
         return request(`/events/${eventId}`);
     },
 
-    // Удаление мероприятия
     deleteEvent(eventId) {
         return remove(`/events/${eventId}`);
     },
 
-    // Получение списка физических локаций
-    getLocations() {
-        return request('/locations');
+    async getLocationPlaces() {
+        const locations = await request('/locations');
+
+        if (!Array.isArray(locations)) return [];
+
+        return locations.flatMap((loc) => {
+            const places = loc.places || [];
+            return places.map((place) => ({
+                ...place,
+                location: {
+                    locationId: loc.locationId,
+                    name: loc.name,
+                    address: loc.address,
+                },
+            }));
+        });
     },
-    // Получение списка черновиков (админ)
+
     getDrafts() {
         return request('/events/drafts');
     },

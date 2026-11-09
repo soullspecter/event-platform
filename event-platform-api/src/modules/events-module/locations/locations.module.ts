@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { Location } from '../../../models/locations/location.entity';
+import { Location } from './entity/location.entity';
 
 import { RolesGuard } from '../../../common/guards/roles.guard';
 

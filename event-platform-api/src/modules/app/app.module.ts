@@ -8,10 +8,7 @@ import { EventsModule } from '../events-module/events/events.module';
 
 @Module({
     imports: [
-        ConfigModule.forRoot({
-            isGlobal: true,
-        }),
-
+        ConfigModule.forRoot({ isGlobal: true }),
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
@@ -22,16 +19,17 @@ import { EventsModule } from '../events-module/events/events.module';
                 username: configService.getOrThrow<string>('DB_USERNAME'),
                 password: configService.getOrThrow<string>('DB_PASSWORD'),
                 database: configService.getOrThrow<string>('DB_DATABASE'),
-
-                ssl: {
-                    rejectUnauthorized: false,
-                },
-
+                ssl: { rejectUnauthorized: false },
                 autoLoadEntities: true,
                 synchronize: false,
+                extra: {
+                    max: 5,
+                    idleTimeoutMillis: 3000,
+                    connectionTimeoutMillis: 10000,
+                    keepAlive: true,
+                },
             }),
         }),
-
         UsersModule,
         AuthModule,
         EventsModule,

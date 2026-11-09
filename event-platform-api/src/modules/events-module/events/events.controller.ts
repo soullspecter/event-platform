@@ -20,7 +20,6 @@ type AuthenticatedRequest = FastifyRequest & {
 export class EventsController {
     constructor(private readonly eventsService: EventsService) {}
 
-    // Создание мероприятия — только администратор.
     @Post('drafts')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin')
@@ -35,7 +34,6 @@ export class EventsController {
         return this.eventsService.publish(id);
     }
 
-    // Изменение мероприятия — только администратор.
     @Patch(':id/draft')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin')
@@ -43,14 +41,12 @@ export class EventsController {
         return this.eventsService.updateEvent(id, dto);
     }
 
-    // Список собственных мероприятий пользователя.
     @Get('mine')
     @UseGuards(JwtAuthGuard)
     findMine(@Req() req: AuthenticatedRequest) {
         return this.eventsService.findMine(req.user.userId);
     }
 
-    // Получение мероприятия для административного редактирования.
     @Get(':id/manage')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin')
@@ -58,19 +54,16 @@ export class EventsController {
         return this.eventsService.findForManagement(id);
     }
 
-    // Список опубликованных мероприятий.
     @Get()
     findPublished() {
         return this.eventsService.findPublished();
     }
 
-    // Публичная страница опубликованного мероприятия.
     @Get(':id')
     findPublishedById(@Param('id', ParseIntPipe) id: number) {
         return this.eventsService.findPublishedById(id);
     }
 
-    // Удаление мероприятия — только администратор.
     @Delete(':id')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin')
@@ -78,7 +71,6 @@ export class EventsController {
         return this.eventsService.remove(id);
     }
 
-    // Список черновиков для администратора.
     @Get('drafts')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('admin')

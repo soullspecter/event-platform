@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 
-import { Location } from '../../../models/locations/location.entity';
+import { Location } from './entity/location.entity';
 import { SaveLocationDto } from './dto/save-location.dto';
 
 @Injectable()
@@ -14,14 +14,13 @@ export class LocationsService {
 
     async create(dto: SaveLocationDto) {
         const name = dto.name?.trim() || null;
-        const place = dto.place?.trim() || null;
         const address = dto.address?.trim() || null;
 
-        if (!name && !place && !address) {
-            throw new BadRequestException('Заполните хотя бы одно поле: название, место или адрес');
+        if (!name && !address) {
+            throw new BadRequestException('Заполните хотя бы одно поле: название или адрес');
         }
 
-        const existing = await this.findByContent({ name, place, address });
+        const existing = await this.findByContent({ name, address });
 
         if (existing) {
             return existing;
@@ -30,38 +29,32 @@ export class LocationsService {
         try {
             const location = this.locationsRepository.create({
                 name,
-                place,
                 address,
             });
 
             return await this.locationsRepository.save(location);
         } catch (error) {
-            // Уникальный индекс locations_unique_content ловит гонку параллельных запросов.
             if (error instanceof QueryFailedError && (error.driverError as { code?: string })?.code === '23505') {
-                const retry = await this.findByContent({ name, place, address });
-
+                const retry = await this.findByContent({ name, address });
                 if (retry) {
                     return retry;
                 }
             }
-
             throw error;
         }
     }
 
-    // Получение всех физических локаций.
     async findAll() {
         return this.locationsRepository.find({
-            order: {
-                locationId: 'DESC',
-            },
+            relations: { places: true },
+            order: { locationId: 'DESC' },
         });
     }
 
-    // Получение одной физической локации.
     async findOne(locationId: number) {
         const location = await this.locationsRepository.findOne({
             where: { locationId },
+            relations: { places: true },
         });
 
         if (!location) {
@@ -71,16 +64,11 @@ export class LocationsService {
         return location;
     }
 
-    // Обновление физической локации.
     async update(locationId: number, dto: SaveLocationDto) {
         const location = await this.findOne(locationId);
 
         if (dto.name !== undefined) {
             location.name = dto.name?.trim() || null;
-        }
-
-        if (dto.place !== undefined) {
-            location.place = dto.place?.trim() || null;
         }
 
         if (dto.address !== undefined) {
@@ -98,41 +86,26 @@ export class LocationsService {
         }
     }
 
-    // Удаление физической локации.
     async remove(locationId: number) {
         const location = await this.findOne(locationId);
 
         try {
             await this.locationsRepository.remove(location);
         } catch (error) {
-            if (
-                error instanceof QueryFailedError &&
-                (
-                    error as QueryFailedError & {
-                        driverError?: { code?: string };
-                    }
-                ).driverError?.code === '23503'
-            ) {
+            if (error instanceof QueryFailedError && (error as QueryFailedError & { driverError?: { code?: string } }).driverError?.code === '23503') {
                 throw new ConflictException('Нельзя удалить физическое место, пока оно используется площадками мероприятий');
             }
-
             throw error;
         }
 
-        return {
-            message: 'Физическое место удалено',
-        };
+        return { message: 'Физическое место удалено' };
     }
 
-    // Поиск локации по нормализованному содержимому.
-    private async findByContent(data: { name: string | null; place: string | null; address: string | null }): Promise<Location | null> {
+    private async findByContent(data: { name: string | null; address: string | null }): Promise<Location | null> {
         return this.locationsRepository
             .createQueryBuilder('location')
             .where("LOWER(TRIM(COALESCE(location.name, ''))) = LOWER(TRIM(COALESCE(:name, '')))", {
                 name: data.name,
-            })
-            .andWhere("LOWER(TRIM(COALESCE(location.place, ''))) = LOWER(TRIM(COALESCE(:place, '')))", {
-                place: data.place,
             })
             .andWhere("LOWER(TRIM(COALESCE(location.address, ''))) = LOWER(TRIM(COALESCE(:address, '')))", {
                 address: data.address,
