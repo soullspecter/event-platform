@@ -1,19 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
-import { SaveLocationPlaceDto } from '../../location-places/dto/save-location-place.dto';
+import { IsArray, IsInt, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+
+import { SaveScheduleItemDto } from '../../schedule/dto/save-schedule-item.dto';
 
 export class SaveProgramDto {
     @IsOptional()
     @IsInt()
     programId?: number | null;
-
-    @IsOptional()
-    @IsInt()
-    scheduleItemId?: number | null;
-
-    @IsOptional()
-    @IsInt()
-    scheduleItemIndex?: number | null;
 
     @IsOptional()
     @IsString()
@@ -25,11 +18,8 @@ export class SaveProgramDto {
     description?: string | null;
 
     @IsOptional()
-    @IsInt()
-    locationPlaceId?: number | null;
-
-    @IsOptional()
-    @ValidateNested()
-    @Type(() => SaveLocationPlaceDto)
-    manualLocation?: SaveLocationPlaceDto | null;
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => SaveScheduleItemDto)
+    schedule?: SaveScheduleItemDto[];
 }

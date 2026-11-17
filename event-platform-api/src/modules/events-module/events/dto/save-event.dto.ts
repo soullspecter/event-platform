@@ -1,7 +1,8 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDateString, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import { IsArray, IsDateString, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+
+import { SaveCommonScheduleItemDto } from '../../common-schedule/dto/save-common-schedule-item.dto';
 import { SaveProgramDto } from '../../programs/dto/save-program.dto';
-import { SaveScheduleItemDto } from '../../schedule/dto/save-schedule-item.dto';
 
 export class SaveEventDto {
     @IsOptional()
@@ -21,19 +22,17 @@ export class SaveEventDto {
     @IsDateString()
     endDate?: string | null;
 
-    @IsOptional()
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => SaveScheduleItemDto)
-    schedule?: SaveScheduleItemDto[];
-
+    /** undefined — не трогаем; [] — очищаем; массив — заменяем. */
     @IsOptional()
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => SaveProgramDto)
     programs?: SaveProgramDto[];
 
+    /** undefined — не трогаем; [] — очищаем; массив — заменяем. */
     @IsOptional()
-    @IsBoolean()
-    publish?: boolean;
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => SaveCommonScheduleItemDto)
+    commonSchedule?: SaveCommonScheduleItemDto[];
 }

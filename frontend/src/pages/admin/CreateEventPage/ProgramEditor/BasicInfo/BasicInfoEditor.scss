@@ -1,0 +1,124 @@
+.basic-info-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 900px;
+
+    &__section {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        padding: 26px;
+        border: 1px solid rgb(238 231 243 / 90%);
+        border-radius: var(--radius-lg);
+        background: rgb(255 255 255 / 85%);
+        box-shadow: var(--shadow-card);
+    }
+
+    &__error {
+        margin: -8px 0 0;
+        color: var(--color-danger);
+        font-size: 13px;
+        font-weight: 600;
+    }
+}
+
+@media (max-width: 650px) {
+    .basic-info-editor__section {
+        padding: 18px;
+    }
+}
+
+.basic-info-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 900px;
+
+    &__section {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        padding: 26px;
+        border: 1px solid rgb(238 231 243 / 90%);
+        border-radius: var(--radius-lg);
+        background: rgb(255 255 255 / 85%);
+        box-shadow: var(--shadow-card);
+    }
+
+    &__error {
+        margin: -8px 0 0;
+        color: var(--color-danger);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    // Общие поля
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+
+        label {
+            color: var(--color-text);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border: 1px solid rgb(220 211 228);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--color-text);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition:
+                border-color 0.2s,
+                box-shadow 0.2s;
+
+            &:focus {
+                border-color: var(--color-primary);
+                box-shadow: 0 0 0 3px rgb(130 75 160 / 12%);
+            }
+
+            &::placeholder {
+                color: #aaa1b0;
+            }
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        input[type='date'] {
+            min-height: 44px;
+        }
+    }
+
+    .field-row {
+        display: grid;
+        gap: 18px;
+
+        &--2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+}
+
+@media (max-width: 650px) {
+    .basic-info-editor__section {
+        padding: 18px;
+    }
+
+    .basic-info-editor .field-row--2 {
+        grid-template-columns: 1fr;
+    }
+}

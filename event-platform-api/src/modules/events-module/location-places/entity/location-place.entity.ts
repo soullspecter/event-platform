@@ -1,4 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import type { Relation } from 'typeorm';
 import { Location } from '../../locations/entity/location.entity';
 
 @Entity({ name: 'location_places' })
@@ -11,7 +12,7 @@ export class LocationPlace {
 
     @ManyToOne(() => Location, { onDelete: 'RESTRICT' })
     @JoinColumn({ name: 'location_id', referencedColumnName: 'locationId' })
-    location: Location;
+    location: Relation<Location>;
 
     @Column({ name: 'place', type: 'text', nullable: true })
     place: string | null;

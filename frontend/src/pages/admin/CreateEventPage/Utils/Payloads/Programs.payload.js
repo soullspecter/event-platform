@@ -1,41 +1,32 @@
 import { toTrimmedOrNull } from '../eventForm.utils';
 
-function resolveScheduleLink(program, schedule) {
-    const idx = program.scheduleItemClientId ? schedule.findIndex((item) => item.clientId === program.scheduleItemClientId) : -1;
-    const linked = idx >= 0 ? schedule[idx] : null;
+function buildLocationPayload(item) {
+    if (item.locationPlaceId) {
+        return { locationPlaceId: Number(item.locationPlaceId) };
+    }
 
-    const rawId = linked?.scheduleItemId;
-    const id = rawId !== null && rawId !== undefined ? Number(rawId) : null;
+    const manual = item.manualLocation;
+    if (!manual) return null;
 
     return {
-        scheduleItemId: id && id > 0 ? id : undefined,
-        scheduleItemIndex: idx >= 0 && (!id || id <= 0) ? idx : undefined,
+        name: toTrimmedOrNull(manual.name),
+        address: toTrimmedOrNull(manual.address),
+        place: toTrimmedOrNull(manual.place),
     };
 }
 
-export function buildProgramsPayload(programs, schedule = []) {
-    return programs.map((program) => {
-        const { scheduleItemId, scheduleItemIndex } = resolveScheduleLink(program, schedule);
-
-        const savedLocationPlaceId = program.locationId != null ? Number(program.locationId) : null;
-
-        const manual = program.manualLocation
-            ? {
-                  locationId: program.manualLocation.locationId || undefined,
-                  name: toTrimmedOrNull(program.manualLocation.name) ?? undefined,
-                  place: toTrimmedOrNull(program.manualLocation.place) ?? undefined,
-                  address: toTrimmedOrNull(program.manualLocation.address) ?? undefined,
-              }
-            : undefined;
-
-        return {
-            programId: program.programId || undefined,
-            scheduleItemId,
-            scheduleItemIndex,
-            name: toTrimmedOrNull(program.name) ?? undefined,
-            description: toTrimmedOrNull(program.description) ?? undefined,
-            locationPlaceId: savedLocationPlaceId || undefined,
-            manualLocation: manual,
-        };
-    });
+export function buildProgramsPayload(programs = []) {
+    return programs.map((program) => ({
+        ...(program.programId ? { programId: Number(program.programId) } : {}),
+        name: toTrimmedOrNull(program.name),
+        description: toTrimmedOrNull(program.description),
+        schedule: (program.schedule ?? []).map((slot) => ({
+            name: toTrimmedOrNull(slot.name),
+            itemDate: slot.itemDate || null,
+            startTime: slot.startTime || null,
+            endTime: slot.endTime || null,
+            // SaveScheduleItemDto expects nested `location`, not `locationPlaceId`.
+            location: buildLocationPayload(slot),
+        })),
+    }));
 }

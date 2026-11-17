@@ -1,18 +1,19 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Program } from '../../programs/entity/program.entity';
-import { Event } from '../../events/entity/event.entity';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+
+import { LocationPlace } from '../../location-places/entity/location-place.entity';
+import { ProgramSchedule } from '../../program-schedule/entity/program-schedule.entity';
 
 @Entity({ name: 'schedule_items' })
 export class ScheduleItem {
     @PrimaryGeneratedColumn({ name: 'schedule_item_id', type: 'integer' })
     scheduleItemId: number;
 
-    @Column({ name: 'event_id', type: 'integer' })
-    eventId: number;
+    @Column({ name: 'location_place_id', type: 'integer', nullable: true })
+    locationPlaceId: number | null;
 
-    @ManyToOne(() => Event, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'event_id', referencedColumnName: 'eventId' })
-    event: Event;
+    @ManyToOne(() => LocationPlace, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'location_place_id', referencedColumnName: 'locationPlaceId' })
+    locationPlace: LocationPlace | null;
 
     @Column({ name: 'name', type: 'varchar', length: 255, nullable: true })
     name: string | null;
@@ -26,6 +27,6 @@ export class ScheduleItem {
     @Column({ name: 'end_time', type: 'time', nullable: true })
     endTime: string | null;
 
-    @OneToMany(() => Program, (program) => program.scheduleItem)
-    programs: Program[];
+    @OneToMany(() => ProgramSchedule, (ps) => ps.scheduleItem)
+    programSchedules: ProgramSchedule[];
 }

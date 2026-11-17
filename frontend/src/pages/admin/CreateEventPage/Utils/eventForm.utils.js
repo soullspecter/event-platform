@@ -18,76 +18,77 @@ export function toTrimmedOrNull(value) {
     return trimmed || null;
 }
 
-export function resolveArray(data, ...keys) {
-    if (Array.isArray(data)) return data;
-    const sources = [data, data?.data, data?.event];
-    for (const source of sources) {
-        if (!source) continue;
-        for (const key of keys) {
-            if (Array.isArray(source[key])) return source[key];
-        }
-    }
-    return [];
-}
-
 export function getEventId(data) {
-    return (
-        data?.eventId ??
-        data?.event_id ??
-        data?.event?.eventId ??
-        data?.event?.event_id ??
-        data?.data?.eventId ??
-        data?.data?.event_id ??
-        data?.data?.event?.eventId ??
-        data?.data?.event?.event_id ??
-        data?.id ??
-        null
-    );
+    return data?.eventId ?? data?.event_id ?? data?.event?.eventId ?? data?.data?.eventId ?? data?.id ?? null;
 }
 
 export function normalizeEvent(data) {
-    const source = data?.event ?? data?.data?.event ?? data?.data ?? data;
+    const source = data?.event ?? data?.data?.event ?? data?.data ?? data ?? {};
     return {
-        title: source?.title ?? '',
-        description: source?.description ?? '',
-        startDate: dateOnly(source?.startDate ?? source?.start_date),
-        endDate: dateOnly(source?.endDate ?? source?.end_date),
-        status: source?.status ?? 'draft',
+        title: source.title ?? '',
+        description: source.description ?? '',
+        startDate: dateOnly(source.startDate ?? source.start_date),
+        endDate: dateOnly(source.endDate ?? source.end_date),
+        status: source.status ?? 'draft',
     };
 }
 
-export function normalizeScheduleItem(item) {
-    const scheduleItemId = item?.scheduleItemId ?? item?.schedule_item_id ?? null;
+function normalizeLocation(item) {
+    const locationPlaceId = item?.locationPlaceId ?? item?.locationPlace?.locationPlaceId ?? item?.location?.locationPlaceId ?? null;
+
     return {
-        clientId: scheduleItemId ? `saved-schedule-${scheduleItemId}` : createClientId('schedule'),
-        scheduleItemId,
-        name: item?.name ?? '',
-        itemDate: dateOnly(item?.itemDate ?? item?.item_date),
-        startTime: timeOnly(item?.startTime ?? item?.start_time),
-        endTime: timeOnly(item?.endTime ?? item?.end_time),
+        locationPlaceId,
+        manualLocation: null,
     };
 }
 
-export function normalizePrograms(rawPrograms, schedule = []) {
+export function normalizeProgramSlot(slot) {
+    const source = slot?.scheduleItem ?? slot ?? {};
+    return {
+        clientId: createClientId('slot'),
+        scheduleItemId: source.scheduleItemId ?? null,
+        name: source.name ?? '',
+        itemDate: dateOnly(source.itemDate),
+        startTime: timeOnly(source.startTime),
+        endTime: timeOnly(source.endTime),
+        ...normalizeLocation(source),
+    };
+}
+
+export function normalizePrograms(rawPrograms) {
     if (!Array.isArray(rawPrograms)) return [];
-    if (!Array.isArray(schedule)) schedule = [];
 
-    return rawPrograms.map((rawProgram) => {
-        const rawId = rawProgram?.scheduleItemId ?? rawProgram?.schedule_item_id ?? null;
-        const scheduleItemId = rawId != null && Number.isFinite(Number(rawId)) ? Number(rawId) : null;
-        const linkedSchedule = scheduleItemId != null ? schedule.find((item) => Number(item.scheduleItemId) === scheduleItemId) : null;
-
-        const locPlace = rawProgram?.locationPlace ?? null;
-        const locId = locPlace ? (locPlace.locationPlaceId ?? locPlace.location_place_id ?? null) : null;
-
+    return rawPrograms.map((program) => {
+        const rawSchedule = program?.schedule ?? program?.programSchedules ?? [];
         return {
             clientId: createClientId('program'),
-            programId: rawProgram?.programId ?? rawProgram?.program_id ?? null,
-            name: rawProgram?.name ?? '',
-            description: rawProgram?.description ?? '',
-            locationId: locId,
-            manualLocation: null,
-            scheduleItemClientId: linkedSchedule?.clientId ?? null,
+            programId: program?.programId ?? null,
+            name: program?.name ?? '',
+            description: program?.description ?? '',
+            schedule: rawSchedule.map(normalizeProgramSlot),
         };
     });
+}
+
+export function normalizeCommonSchedule(rawCommon) {
+    if (!rawCommon) return [];
+
+    let items = [];
+    if (Array.isArray(rawCommon)) {
+        items = rawCommon;
+    } else if (typeof rawCommon === 'object') {
+        Object.values(rawCommon).forEach((group) => {
+            if (Array.isArray(group)) items.push(...group);
+        });
+    }
+
+    return items.map((item) => ({
+        clientId: createClientId('common'),
+        commonItemId: item.commonItemId ?? null,
+        name: item.name ?? '',
+        itemDate: dateOnly(item.itemDate),
+        startTime: timeOnly(item.startTime),
+        endTime: timeOnly(item.endTime),
+        ...normalizeLocation(item),
+    }));
 }

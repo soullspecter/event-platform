@@ -1,0 +1,16 @@
+import { buildProgramsPayload } from './Programs.payload';
+import { buildCommonSchedulePayload } from './CommonSchedule.payload';
+import { toTrimmedOrNull } from '../eventForm.utils';
+
+export function buildEventPayload({ event, programs, commonSchedule }) {
+    return {
+        title: toTrimmedOrNull(event.title),
+        description: toTrimmedOrNull(event.description),
+        startDate: event.startDate || null,
+        endDate: event.endDate || null,
+        // Backend interprets these arrays as full replacement lists:
+        // omitted IDs are deleted, IDs are updated, entries without IDs are created.
+        programs: buildProgramsPayload(programs),
+        commonSchedule: buildCommonSchedulePayload(commonSchedule),
+    };
+}

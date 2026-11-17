@@ -1,5 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
-
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -10,13 +9,6 @@ import { ScheduleService } from './schedule.service';
 @Controller('schedule/:eventId')
 export class ScheduleController {
     constructor(private readonly scheduleService: ScheduleService) {}
-
-    @Post()
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
-    create(@Param('eventId', ParseIntPipe) eventId: number, @Body() dto: SaveScheduleItemDto) {
-        return this.scheduleService.create(eventId, dto);
-    }
 
     @Get()
     findPublished(@Param('eventId', ParseIntPipe) eventId: number) {

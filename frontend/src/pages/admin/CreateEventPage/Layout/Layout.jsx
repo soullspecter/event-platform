@@ -1,26 +1,24 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom'; // <-- useNavigate убран
-import { Check, Save, Send } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Check, Save, Send, Info, List } from 'lucide-react';
 
 import { eventsApi } from '../../../../shared/api/eventsApi';
-import ProgramEditor from '../ProgramEditor/ProgramEditor';
+import BasicInfoEditor from '../ProgramEditor/BasicInfo/BasicInfoEditor';
+import ProgramEditor from '../ProgramEditor/ProgramEditor/ProgramEditor';
 
-import { getEventId, normalizeEvent, normalizePrograms, normalizeScheduleItem, resolveArray } from '../Utils/eventForm.utils';
-import { buildBasicInfoPayload } from '../Utils/Payloads/BasicInfo.payload';
-import { buildProgramsPayload } from '../Utils/Payloads/Programs.payload';
-import { buildSchedulePayload } from '../Utils/Payloads/Schedule.payload';
+import { getEventId, normalizeEvent, normalizePrograms, normalizeCommonSchedule } from '../Utils/eventForm.utils';
+
+import { buildEventPayload } from '../Utils/Payloads/Event.payload';
 
 import './Layout.scss';
 
-const EMPTY_EVENT = { title: '', description: '', startDate: '', endDate: '', status: 'draft' };
-
-function buildPayload(event, schedule, programs) {
-    return {
-        ...buildBasicInfoPayload(event),
-        schedule: buildSchedulePayload(schedule),
-        programs: buildProgramsPayload(programs, schedule),
-    };
-}
+const EMPTY_EVENT = {
+    title: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    status: 'draft',
+};
 
 export default function Layout() {
     const params = useParams();
@@ -28,14 +26,43 @@ export default function Layout() {
 
     const [currentEventId, setCurrentEventId] = useState(routeEventId);
     const [event, setEvent] = useState(EMPTY_EVENT);
-    const [schedule, setSchedule] = useState([]);
     const [programs, setPrograms] = useState([]);
+    const [commonSchedule, setCommonSchedule] = useState([]);
     const [locations, setLocations] = useState([]);
+
+    const [activeTab, setActiveTab] = useState('basic');
+    const [activeProgramDate, setActiveProgramDate] = useState('');
 
     const [loading, setLoading] = useState(Boolean(routeEventId));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
+
+    // Формируем даты мероприятия.
+    const dates = (() => {
+        const { startDate, endDate } = event;
+
+        if (!startDate || !endDate || endDate < startDate) {
+            return [];
+        }
+
+        const result = [];
+
+        const [sy, sm, sd] = startDate.split('-').map(Number);
+        const [ey, em, ed] = endDate.split('-').map(Number);
+
+        const start = Date.UTC(sy, sm - 1, sd);
+        const end = Date.UTC(ey, em - 1, ed);
+
+        for (let current = start; current <= end; current += 86400000) {
+            result.push(new Date(current).toISOString().slice(0, 10));
+        }
+
+        return result;
+    })();
+
+    // Если период мероприятия изменился, выбираем первую доступную дату.
+    const selectedProgramDate = dates.includes(activeProgramDate) ? activeProgramDate : dates[0] || '';
 
     useEffect(() => {
         let active = true;
@@ -46,33 +73,35 @@ export default function Layout() {
             setNotice('');
             setCurrentEventId(routeEventId);
             setEvent(EMPTY_EVENT);
-            setSchedule([]);
             setPrograms([]);
+            setCommonSchedule([]);
+            setActiveProgramDate('');
 
             try {
-                const locs = await eventsApi.getLocationPlaces();
-                if (!active) return;
-                setLocations(Array.isArray(locs) ? locs : []);
+                const [places, data] = await Promise.all([eventsApi.getLocationPlaces(), routeEventId ? eventsApi.getForManagement(routeEventId) : Promise.resolve(null)]);
 
-                if (!routeEventId) return;
-
-                const data = await eventsApi.getForManagement(routeEventId);
                 if (!active) return;
 
-                const loadedSchedule = resolveArray(data, 'schedule').map(normalizeScheduleItem);
-                const loadedPrograms = normalizePrograms(resolveArray(data, 'programs'), loadedSchedule);
+                setLocations(Array.isArray(places) ? places : []);
 
-                setEvent(normalizeEvent(data));
-                setSchedule(loadedSchedule);
-                setPrograms(loadedPrograms);
+                if (data) {
+                    setEvent(normalizeEvent(data));
+                    setPrograms(normalizePrograms(data.programs));
+                    setCommonSchedule(normalizeCommonSchedule(data.commonScheduleByDate));
+                }
             } catch (err) {
-                if (active) setError(err.message || 'Ошибка загрузки');
+                if (active) {
+                    setError(err.message || 'Ошибка загрузки');
+                }
             } finally {
-                if (active) setLoading(false);
+                if (active) {
+                    setLoading(false);
+                }
             }
         }
 
         load();
+
         return () => {
             active = false;
         };
@@ -80,33 +109,47 @@ export default function Layout() {
 
     async function handleSave(publish = false) {
         if (saving) return;
+
         setError('');
         setNotice('');
         setSaving(true);
 
         try {
-            const payload = buildPayload(event, schedule, programs);
+            const payload = buildEventPayload({
+                event,
+                programs,
+                commonSchedule,
+            });
+
             let savedId = currentEventId;
+            let savedData;
 
             if (currentEventId) {
-                await eventsApi.updateDraft(currentEventId, payload);
+                savedData = await eventsApi.updateDraft(currentEventId, payload);
             } else {
-                const response = await eventsApi.createDraft(payload);
-                savedId = getEventId(response);
-                if (!savedId) throw new Error('Не удалось получить ID');
+                savedData = await eventsApi.createDraft(payload);
+                savedId = getEventId(savedData);
+
+                if (!savedId) {
+                    throw new Error('Backend не вернул ID созданного мероприятия');
+                }
 
                 setCurrentEventId(savedId);
 
-                // Меняем URL, не вызывая перемонтирование компонента React Router
                 window.history.replaceState(null, '', `/events/${savedId}/edit`);
             }
 
             if (publish) {
                 await eventsApi.publishEvent(savedId);
-                setEvent((prev) => ({ ...prev, status: 'published' }));
+
+                setEvent((prev) => ({
+                    ...prev,
+                    status: 'published',
+                }));
+
                 setNotice('Мероприятие опубликовано.');
             } else {
-                setNotice('Черновик сохранён.');
+                setNotice('Изменения сохранены.');
             }
         } catch (err) {
             setError(err.message || 'Ошибка сохранения');
@@ -133,6 +176,7 @@ export default function Layout() {
             </div>
 
             {error && <div className="event-editor__alert event-editor__alert--error">{error}</div>}
+
             {notice && (
                 <div className="event-editor__alert event-editor__alert--success">
                     <Check size={18} />
@@ -140,18 +184,50 @@ export default function Layout() {
                 </div>
             )}
 
+            <div className="event-editor__tabs">
+                <button type="button" className={`event-editor__tab ${activeTab === 'basic' ? 'is-active' : ''}`} onClick={() => setActiveTab('basic')}>
+                    <Info size={18} />
+                    <span className="event-editor__tab-label">Основная информация</span>
+                </button>
+
+                <button type="button" className={`event-editor__tab ${activeTab === 'program' ? 'is-active' : ''}`} onClick={() => setActiveTab('program')}>
+                    <List size={18} />
+                    <span className="event-editor__tab-label">Программа</span>
+                </button>
+            </div>
+
+            {/* Переключение дат находится на уровне Layout,
+                между основными вкладками и рабочей областью. */}
+            {activeTab === 'program' && dates.length > 0 && (
+                <div className="event-editor__date-tabs" aria-label="Даты мероприятия">
+                    {dates.map((date) => (
+                        <button type="button" key={date} className={selectedProgramDate === date ? 'is-active' : ''} onClick={() => setActiveProgramDate(date)}>
+                            {new Date(`${date}T12:00:00`).toLocaleDateString('ru-RU', {
+                                day: 'numeric',
+                                month: 'short',
+                            })}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             <div className="event-editor__workspace">
                 <section className="event-editor__panel">
                     <div className="event-editor__tab-content">
-                        <ProgramEditor
-                            event={event}
-                            onEventChange={setEvent}
-                            schedule={schedule}
-                            programs={programs}
-                            onScheduleChange={setSchedule}
-                            onProgramsChange={setPrograms}
-                            locations={locations}
-                        />
+                        {activeTab === 'basic' ? (
+                            <BasicInfoEditor event={event} onEventChange={setEvent} />
+                        ) : (
+                            <ProgramEditor
+                                event={event}
+                                dates={dates}
+                                selectedDate={selectedProgramDate}
+                                programs={programs}
+                                onProgramsChange={setPrograms}
+                                commonSchedule={commonSchedule}
+                                onCommonScheduleChange={setCommonSchedule}
+                                locations={locations}
+                            />
+                        )}
                     </div>
                 </section>
             </div>
@@ -162,6 +238,7 @@ export default function Layout() {
                         <Save size={17} />
                         {saving ? 'Сохранение…' : 'Сохранить черновик'}
                     </button>
+
                     <button type="button" className="event-editor__publish" disabled={saving || event.status === 'published'} onClick={() => handleSave(true)}>
                         <Send size={17} />
                         {saving ? 'Обработка…' : event.status === 'published' ? 'Уже опубликовано' : 'Опубликовать'}

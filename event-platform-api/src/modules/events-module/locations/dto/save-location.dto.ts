@@ -1,11 +1,6 @@
-import { IsInt, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class SaveLocationDto {
-    @IsOptional()
-    @ValidateIf((_, value) => value !== null)
-    @IsInt()
-    locationId?: number | null;
-
     @IsOptional()
     @IsString()
     @MaxLength(255)

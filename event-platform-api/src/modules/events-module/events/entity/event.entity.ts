@@ -1,6 +1,8 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Relation } from 'typeorm';
+
 import { User } from '../../../users/entity/user.entity';
-import { ScheduleItem } from '../../schedule/entity/schedule-item.entity';
+import { Program } from '../../programs/entity/program.entity';
+import { CommonScheduleItem } from '../../common-schedule/entity/common-schedule-item.entity';
 
 export type EventStatus = 'draft' | 'published';
 
@@ -21,16 +23,19 @@ export class Event {
     @Column({ name: 'end_date', type: 'date', nullable: true })
     endDate: string | null;
 
-    @Column({ name: 'user_id', type: 'integer', nullable: true })
-    userId: number | null;
+    @Column({ name: 'created_by', type: 'integer' })
+    createdBy: number;
 
-    @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
-    @JoinColumn({ name: 'user_id', referencedColumnName: 'userId' })
-    organizer: User | null;
+    @ManyToOne(() => User, { onDelete: 'RESTRICT' })
+    @JoinColumn({ name: 'created_by', referencedColumnName: 'userId' })
+    creator: Relation<User>;
 
-    @Column({ name: 'status', type: 'varchar', length: 20, default: 'draft' })
+    @Column({ name: 'status', type: 'varchar', length: 20, nullable: false, default: 'draft' })
     status: EventStatus;
 
-    @OneToMany(() => ScheduleItem, (item) => item.event)
-    scheduleItems: ScheduleItem[];
+    @OneToMany(() => Program, (program) => program.event)
+    programs: Program[];
+
+    @OneToMany(() => CommonScheduleItem, (item) => item.event)
+    commonScheduleItems: CommonScheduleItem[];
 }

@@ -1,92 +1,169 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 
-import { ScheduleItem } from '../schedule/entity/schedule-item.entity';
-import { Program } from './entity/program.entity';
+import { Event } from '../events/entity/event.entity';
+import { ProgramSchedule } from '../program-schedule/entity/program-schedule.entity';
+import { ScheduleService } from '../schedule/schedule.service';
+
 import { SaveProgramDto } from './dto/save-program.dto';
-import { LocationPlace } from '../location-places/entity/location-place.entity';
+import { Program } from './entity/program.entity';
 
 @Injectable()
 export class ProgramsService {
     constructor(
-        @InjectRepository(Program)
-        private readonly programsRepository: Repository<Program>,
-
-        @InjectRepository(ScheduleItem)
-        private readonly scheduleRepository: Repository<ScheduleItem>,
-
-        @InjectRepository(LocationPlace)
-        private readonly locationPlacesRepository: Repository<LocationPlace>,
+        private readonly scheduleService: ScheduleService,
+        @InjectRepository(Program) private readonly programsRepository: Repository<Program>,
+        @InjectRepository(Event) private readonly eventsRepository: Repository<Event>,
+        @InjectRepository(ProgramSchedule) private readonly psRepository: Repository<ProgramSchedule>,
     ) {}
 
-    async create(dto: SaveProgramDto) {
-        if (dto.scheduleItemId != null) {
-            const scheduleItem = await this.scheduleRepository.findOne({
-                where: { scheduleItemId: dto.scheduleItemId },
-            });
-            // Если слот передан, но его нет — бросаем ошибку.
-            // Переменную не сохраняем, нам важен сам факт проверки.
-            if (!scheduleItem) throw new NotFoundException('Пункт расписания не найден');
-        }
+    async create(eventId: number, dto: SaveProgramDto) {
+        const event = await this.eventsRepository.findOne({ where: { eventId } });
+        if (!event) throw new NotFoundException('Мероприятие не найдено');
 
-        const program = this.programsRepository.create({
-            scheduleItemId: dto.scheduleItemId ?? null,
-            name: dto.name?.trim() || 'Без названия',
-            description: dto.description?.trim() || null,
-            locationPlaceId: dto.locationPlaceId ?? null,
+        return this.programsRepository.manager.transaction(async (manager) => {
+            const program = await manager.getRepository(Program).save(
+                manager.getRepository(Program).create({
+                    eventId: event.eventId,
+                    name: this.cleanText(dto.name),
+                    description: this.cleanText(dto.description),
+                }),
+            );
+
+            if (dto.schedule !== undefined) {
+                await this.replaceSchedule(manager, event, program, dto.schedule);
+            }
+            return this.findOneInManager(manager, program.programId);
         });
-
-        return this.programsRepository.save(program);
     }
 
     async findAllByEvent(eventId: number) {
-        return this.programsRepository
-            .createQueryBuilder('program')
-            .innerJoin('program.scheduleItem', 'scheduleItem')
-            .where('scheduleItem.eventId = :eventId', { eventId })
-            .leftJoinAndSelect('program.locationPlace', 'locationPlace')
-            .leftJoinAndSelect('locationPlace.location', 'location')
-            .orderBy('scheduleItem.itemDate', 'ASC')
-            .addOrderBy('scheduleItem.startTime', 'ASC')
-            .addOrderBy('program.programId', 'ASC')
-            .getMany();
+        return this.programsRepository.find({
+            where: { eventId },
+            relations: { programSchedules: { scheduleItem: { locationPlace: { location: true } } } },
+        });
     }
 
     async findOne(programId: number) {
         const program = await this.programsRepository.findOne({
             where: { programId },
-            relations: { scheduleItem: true, locationPlace: { location: true } },
+            relations: { programSchedules: { scheduleItem: { locationPlace: { location: true } } } },
         });
         if (!program) throw new NotFoundException('Программа не найдена');
         return program;
     }
 
     async update(programId: number, dto: SaveProgramDto) {
-        const program = await this.findOne(programId);
+        return this.programsRepository.manager.transaction(async (manager) => {
+            const repo = manager.getRepository(Program);
+            const program = await repo.findOne({ where: { programId }, relations: { event: true } });
+            if (!program) throw new NotFoundException('Программа не найдена');
 
-        if (dto.name !== undefined) program.name = dto.name?.trim() || 'Без названия';
-        if (dto.description !== undefined) program.description = dto.description?.trim() || null;
-        if (dto.locationPlaceId !== undefined) program.locationPlaceId = dto.locationPlaceId;
+            if (dto.name !== undefined) program.name = this.cleanText(dto.name);
+            if (dto.description !== undefined) program.description = this.cleanText(dto.description);
+            await repo.save(program);
 
-        if (dto.scheduleItemId !== undefined) {
-            if (dto.scheduleItemId === null) {
-                program.scheduleItemId = null;
-            } else {
-                const scheduleItem = await this.scheduleRepository.findOne({
-                    where: { scheduleItemId: dto.scheduleItemId },
-                });
-                if (!scheduleItem) throw new NotFoundException('Новый пункт расписания не найден');
-                program.scheduleItemId = dto.scheduleItemId;
+            if (dto.schedule !== undefined) {
+                await this.replaceSchedule(manager, program.event, program, dto.schedule);
             }
-        }
 
-        return this.programsRepository.save(program);
+            return this.findOneInManager(manager, programId);
+        });
     }
 
     async remove(programId: number) {
-        const program = await this.findOne(programId);
-        await this.programsRepository.remove(program);
-        return { message: 'Программа удалена' };
+        return this.programsRepository.manager.transaction(async (manager) => {
+            const program = await manager.getRepository(Program).findOne({ where: { programId } });
+            if (!program) throw new NotFoundException('Программа не найдена');
+
+            const links = await manager.getRepository(ProgramSchedule).find({ where: { programId } });
+            const slotIds = links.map((l) => l.scheduleItemId);
+
+            await manager.getRepository(Program).remove(program);
+            await this.scheduleService.removeOrphans(manager, slotIds);
+
+            return { message: 'Программа удалена' };
+        });
+    }
+
+    /**
+     * Полностью заменяет набор программ мероприятия переданным списком.
+     * Программы без programId создаются, с programId — обновляются, отсутствующие — удаляются.
+     */
+    async replaceForEvent(manager: EntityManager, event: Event, dtos: SaveProgramDto[]): Promise<void> {
+        const repo = manager.getRepository(Program);
+        const existing = await repo.find({ where: { eventId: event.eventId } });
+        const existingById = new Map(existing.map((p) => [p.programId, p]));
+        const keptIds = new Set<number>();
+
+        for (const dto of dtos) {
+            let program: Program;
+
+            if (dto.programId != null) {
+                const found = existingById.get(dto.programId);
+                if (!found) throw new BadRequestException(`Программа ${dto.programId} не найдена у мероприятия`);
+                if (keptIds.has(dto.programId)) throw new BadRequestException(`Программа ${dto.programId} передана дважды`);
+                program = found;
+                if (dto.name !== undefined) program.name = this.cleanText(dto.name);
+                if (dto.description !== undefined) program.description = this.cleanText(dto.description);
+            } else {
+                program = repo.create({
+                    eventId: event.eventId,
+                    name: this.cleanText(dto.name),
+                    description: this.cleanText(dto.description),
+                });
+            }
+
+            program = await repo.save(program);
+            keptIds.add(program.programId);
+
+            if (dto.schedule !== undefined) {
+                await this.replaceSchedule(manager, event, program, dto.schedule);
+            }
+        }
+
+        const removedIds = existing.filter((p) => !keptIds.has(p.programId)).map((p) => p.programId);
+        if (removedIds.length > 0) {
+            const oldLinks = await manager.getRepository(ProgramSchedule).find({
+                where: { programId: In(removedIds) },
+            });
+            const oldSlotIds = oldLinks.map((l) => l.scheduleItemId);
+
+            await repo.delete({ programId: In(removedIds) });
+            await this.scheduleService.removeOrphans(manager, oldSlotIds);
+        }
+    }
+
+    private async replaceSchedule(manager: EntityManager, event: Event, program: Program, dtos: SaveProgramDto['schedule']): Promise<void> {
+        if (!dtos) return;
+
+        const psRepo = manager.getRepository(ProgramSchedule);
+        const oldLinks = await psRepo.find({ where: { programId: program.programId } });
+        const oldSlotIds = oldLinks.map((l) => l.scheduleItemId);
+
+        await psRepo.delete({ programId: program.programId });
+
+        for (const slotDto of dtos) {
+            const slot = await this.scheduleService.getOrCreateSlot(manager, event, slotDto);
+            await psRepo.save(psRepo.create({ programId: program.programId, scheduleItemId: slot.scheduleItemId }));
+        }
+
+        await this.scheduleService.removeOrphans(manager, oldSlotIds);
+    }
+
+    private async findOneInManager(manager: EntityManager, programId: number) {
+        const program = await manager.getRepository(Program).findOne({
+            where: { programId },
+            relations: { programSchedules: { scheduleItem: { locationPlace: { location: true } } } },
+        });
+        if (!program) throw new NotFoundException('Программа не найдена');
+        return program;
+    }
+
+    private cleanText(value: string | null | undefined): string | null {
+        if (value == null) return null;
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : null;
     }
 }

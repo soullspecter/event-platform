@@ -8,24 +8,17 @@ async function request(path, options = {}) {
     const headers = new Headers(options.headers);
     const token = getAccessToken();
 
-    if (options.body && !headers.has('Content-Type')) {
+    if (options.body !== undefined && !headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json');
     }
 
-    if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-    }
+    if (token) headers.set('Authorization', `Bearer ${token}`);
 
     let response;
-
     try {
-        response = await fetch(`${API_URL}${path}`, {
-            ...options,
-            headers,
-        });
+        response = await fetch(`${API_URL}${path}`, { ...options, headers });
     } catch (error) {
         if (error.name === 'AbortError') throw error;
-
         throw new Error('Не удалось подключиться к серверу. Проверь, запущен ли backend.', { cause: error });
     }
 
@@ -42,7 +35,6 @@ async function request(path, options = {}) {
 
     if (!response.ok) {
         const message = typeof data === 'string' ? data : Array.isArray(data?.message) ? data.message.join('\n') : data?.message || data?.error || `Ошибка сервера (${response.status})`;
-
         throw new Error(message);
     }
 
@@ -68,57 +60,90 @@ function remove(path) {
 }
 
 export const eventsApi = {
+    // Event
     createDraft(payload) {
         return post('/events/drafts', payload);
     },
-
     updateDraft(eventId, payload) {
         return patch(`/events/${eventId}/draft`, payload);
     },
-
     publishEvent(eventId) {
         return post(`/events/${eventId}/publish`);
     },
-
     getForManagement(eventId) {
         return request(`/events/${eventId}/manage`);
     },
-
     getMyEvents() {
         return request('/events/mine');
     },
-
     getPublished() {
         return request('/events');
     },
-
     getPublishedById(eventId) {
         return request(`/events/${eventId}`);
     },
-
     deleteEvent(eventId) {
         return remove(`/events/${eventId}`);
+    },
+    getDrafts() {
+        return request('/events/drafts');
+    },
+
+    // Programs: individual CRUD endpoints (the editor currently saves atomically through updateDraft).
+    createProgram(eventId, payload) {
+        return post(`/programs/event/${eventId}`, payload);
+    },
+    getPrograms(eventId) {
+        return request(`/programs/event/${eventId}`);
+    },
+    getProgram(programId) {
+        return request(`/programs/${programId}`);
+    },
+    updateProgram(programId, payload) {
+        return patch(`/programs/${programId}`, payload);
+    },
+    deleteProgram(programId) {
+        return remove(`/programs/${programId}`);
+    },
+
+    // Common schedule CRUD
+    getCommonSchedule(eventId) {
+        return request(`/events/${eventId}/common-schedule`);
+    },
+    createCommonScheduleItem(eventId, payload) {
+        return post(`/events/${eventId}/common-schedule`, payload);
+    },
+    updateCommonScheduleItem(eventId, commonItemId, payload) {
+        return patch(`/events/${eventId}/common-schedule/${commonItemId}`, payload);
+    },
+    deleteCommonScheduleItem(eventId, commonItemId) {
+        return remove(`/events/${eventId}/common-schedule/${commonItemId}`);
+    },
+
+    // Program schedule slots
+    getSchedule(eventId) {
+        return request(`/schedule/${eventId}/mine`);
+    },
+    updateScheduleItem(eventId, scheduleItemId, payload) {
+        return patch(`/schedule/${eventId}/${scheduleItemId}`, payload);
+    },
+    deleteScheduleItem(eventId, scheduleItemId) {
+        return remove(`/schedule/${eventId}/${scheduleItemId}`);
     },
 
     async getLocationPlaces() {
         const locations = await request('/locations');
-
         if (!Array.isArray(locations)) return [];
 
-        return locations.flatMap((loc) => {
-            const places = loc.places || [];
-            return places.map((place) => ({
+        return locations.flatMap((location) =>
+            (location.places || []).map((place) => ({
                 ...place,
                 location: {
-                    locationId: loc.locationId,
-                    name: loc.name,
-                    address: loc.address,
+                    locationId: location.locationId,
+                    name: location.name,
+                    address: location.address,
                 },
-            }));
-        });
-    },
-
-    getDrafts() {
-        return request('/events/drafts');
+            })),
+        );
     },
 };

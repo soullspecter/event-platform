@@ -1,19 +1,15 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 
-import { EventsService } from './events.service';
-import { SaveEventDto } from './dto/save-event.dto';
-
 import { JwtAuthGuard } from '../../auth/jwt/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+
+import { SaveEventDto } from './dto/save-event.dto';
+import { EventsService } from './events.service';
 
 type AuthenticatedRequest = FastifyRequest & {
-    user: {
-        userId: number;
-        email: string;
-        roles: string[];
-    };
+    user: { userId: number; email: string; roles: string[] };
 };
 
 @Controller('events')
@@ -39,6 +35,13 @@ export class EventsController {
     @Roles('admin')
     updateDraft(@Param('id', ParseIntPipe) id: number, @Body() dto: SaveEventDto) {
         return this.eventsService.updateEvent(id, dto);
+    }
+
+    @Get('drafts')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    findDrafts() {
+        return this.eventsService.findDrafts();
     }
 
     @Get('mine')
@@ -69,12 +72,5 @@ export class EventsController {
     @Roles('admin')
     remove(@Param('id', ParseIntPipe) id: number) {
         return this.eventsService.remove(id);
-    }
-
-    @Get('drafts')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
-    findDrafts() {
-        return this.eventsService.findDrafts();
     }
 }

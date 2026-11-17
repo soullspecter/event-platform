@@ -1,11 +1,11 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../../auth/jwt/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../../common/guards/roles.guard';
 
-import { ProgramsService } from './programs.service';
 import { SaveProgramDto } from './dto/save-program.dto';
+import { ProgramsService } from './programs.service';
 
 @Controller('programs')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,9 +13,9 @@ import { SaveProgramDto } from './dto/save-program.dto';
 export class ProgramsController {
     constructor(private readonly programsService: ProgramsService) {}
 
-    @Post()
-    create(@Body() dto: SaveProgramDto) {
-        return this.programsService.create(dto);
+    @Post('event/:eventId')
+    create(@Param('eventId', ParseIntPipe) eventId: number, @Body() dto: SaveProgramDto) {
+        return this.programsService.create(eventId, dto);
     }
 
     @Get('event/:eventId')
