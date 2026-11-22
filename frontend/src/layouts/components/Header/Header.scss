@@ -9,11 +9,25 @@
     gap: 48px;
 
     padding: 14px 56px;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 0;
 
-    background: rgb(255 255 255 / 88%);
+    background: rgb(255 255 255 / 90%);
+    box-shadow: 0 10px 30px rgb(6 62 140 / 10%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+
+    /* акцентная линия по нижней кромке шапки */
+    &::after {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+
+        background: var(--gradient-line);
+        content: '';
+        pointer-events: none;
+    }
 
     &__brand {
         display: inline-flex;
@@ -27,9 +41,14 @@
 
     &__brand-name {
         font-family: var(--font-family-heading);
-        font-size: 24px;
+        font-size: 26px;
         font-weight: 800;
         letter-spacing: -1px;
+
+        color: transparent;
+        background: linear-gradient(100deg, #0058a4 10%, #0a78e8 55%, #19b8ff 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
     }
 
     &__nav {
@@ -63,13 +82,15 @@
             color: var(--color-primary-hover);
         }
 
-        &--active {
-            background: var(--color-primary-soft);
-            color: var(--color-primary-hover);
+        &--active,
+        &--active:hover {
+            background: var(--gradient-primary);
+            box-shadow: var(--shadow-primary);
+            color: #fff;
         }
 
         &:focus-visible {
-            outline: 3px solid rgb(121 84 246 / 35%);
+            outline: 3px solid rgb(10 104 216 / 35%);
             outline-offset: 3px;
         }
     }
@@ -109,7 +130,7 @@
         }
 
         &:focus-visible {
-            outline: 3px solid rgb(121 84 246 / 35%);
+            outline: 3px solid rgb(10 104 216 / 35%);
             outline-offset: 3px;
         }
     }
@@ -123,7 +144,7 @@
 
         border-radius: 50%;
         background: var(--gradient-primary);
-        color: #fff;
+        color: #ffffff;
         font-size: 12px;
         font-weight: 800;
     }
@@ -140,8 +161,8 @@
         border-radius: 14px;
 
         background: var(--gradient-primary);
-        box-shadow: 0 6px 18px rgb(121 84 246 / 20%);
-        color: #fff;
+        box-shadow: 0 6px 18px rgb(10 104 216 / 35%);
+        color: #ffffff;
 
         font-family: inherit;
         font-size: var(--font-size-sm);
@@ -165,7 +186,7 @@
         }
 
         &:focus-visible {
-            outline: 3px solid rgb(121 84 246 / 35%);
+            outline: 3px solid rgb(10 104 216 / 35%);
             outline-offset: 3px;
         }
     }
@@ -195,7 +216,7 @@
         }
 
         &:focus-visible {
-            outline: 3px solid rgb(121 84 246 / 35%);
+            outline: 3px solid rgb(10 104 216 / 35%);
             outline-offset: 3px;
         }
     }

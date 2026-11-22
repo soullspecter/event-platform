@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Clock, MapPin, Sparkles } from 'lucide-react';
+import { Clock, MapPin, CalendarDays } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
 import { eventsApi } from '../../shared/api/eventsApi.js';
@@ -96,7 +96,7 @@ export default function EventPage() {
         return (
             <main className="public-event">
                 <div className="public-event__state">
-                    <Sparkles size={28} />
+                    <CalendarDays size={28} />
                     <h1>Мероприятие не найдено</h1>
                     <p>{error || 'Возможно, оно еще не опубликовано.'}</p>
                 </div>

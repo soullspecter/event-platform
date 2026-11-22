@@ -65,10 +65,11 @@ def _norm_location(loc):
     """{name, address, place} -> SaveLocationPlaceDto-совместимый объект или None."""
     if not isinstance(loc, dict):
         return None
+    
     name = (loc.get("name") or "").strip() or None
     address = (loc.get("address") or "").strip() or None
     place = (loc.get("place") or "").strip() or None
-    # API требует name или address, если location передан
+
     if not (name or address):
         return None
     return {"name": name, "address": address, "place": place}
@@ -80,7 +81,6 @@ def _fix_slot(raw, start_date, end_date):
     start = _norm_time(raw.get("startTime"))
     end = _norm_time(raw.get("endTime"))
 
-    # API: endTime должен быть строго позже startTime
     if start and end and end <= start:
         end = None
 
@@ -110,7 +110,7 @@ def _clean_slots(slots, start_date, end_date):
 # GigaChat
 # ─────────────────────────────────────────────────────────────
 
-def _ask_gigachat(prompt: str, user_content: str, schema: dict, max_retries: int = 3) -> dict:
+def _ask_gigachat(prompt: str, user_content: str, schema: dict, max_retries: int = 5) -> dict:
     credentials = os.getenv("GIGACHAT_CREDENTIALS")
     if not credentials:
         raise RuntimeError("Не задан GIGACHAT_CREDENTIALS в .env")
@@ -147,7 +147,7 @@ def _ask_gigachat(prompt: str, user_content: str, schema: dict, max_retries: int
             return json.loads(content)
 
         except json.JSONDecodeError:
-            print(f"      ⚠ GigaChat выдал текст вместо JSON (попытка {attempt + 1}/{max_retries}).")
+            print(f"GigaChat выдал текст вместо JSON (попытка {attempt + 1}/{max_retries}).")
             if attempt == max_retries - 1:
                 raise RuntimeError(
                     f"GigaChat не смог выдать JSON после {max_retries} попыток.\nОтвет: {content[:300]}"
@@ -155,7 +155,7 @@ def _ask_gigachat(prompt: str, user_content: str, schema: dict, max_retries: int
             time.sleep(2)
 
         except Exception as e:
-            print(f"      ⚠ Ошибка API GigaChat (попытка {attempt + 1}/{max_retries}): {e}")
+            print(f"Ошибка API GigaChat (попытка {attempt + 1}/{max_retries}): {e}")
             if attempt == max_retries - 1:
                 raise
             time.sleep(2)
@@ -169,7 +169,6 @@ def run_one(md_file: Path, send_to_api: bool = False) -> dict:
     markdown = md_file.read_text(encoding="utf-8")
     print(f"  Длина Markdown: {len(markdown)} символов")
 
-    # Шаг 1: Метаданные
     print("  [Шаг 1/4] Метаданные...")
     meta = _ask_gigachat(META_PROMPT, markdown, META_SCHEMA)
     print(f"    title: {meta.get('title')}")
@@ -182,13 +181,12 @@ def run_one(md_file: Path, send_to_api: bool = False) -> dict:
         end_date = start_date
     print(f"    период: {start_date} — {end_date}")
 
-    # Шаг 2: Список программ
+
     print("  [Шаг 2/4] Выделение программ...")
     programs_result = _ask_gigachat(PROGRAMS_LIST_PROMPT, markdown, PROGRAMS_LIST_SCHEMA)
     programs_list = programs_result.get("programs", [])
     print(f"    Найдено программ: {len(programs_list)}")
 
-    # Шаг 3: Расписание для каждой программы
     final_programs = []
     for idx, prog in enumerate(programs_list, start=1):
         prog_name = (prog.get("name") or "").strip() or "Без названия"
@@ -215,14 +213,12 @@ def run_one(md_file: Path, send_to_api: bool = False) -> dict:
             "schedule": schedule,
         })
 
-    # Шаг 4: Общее расписание (плоский массив)
     print("  [Шаг 4/4] Общее расписание...")
     common_result = _ask_gigachat(COMMON_SCHEDULE_PROMPT, markdown, COMMON_SCHEDULE_SCHEMA)
     raw_common = common_result.get("commonSchedule", [])
     common_schedule = _clean_slots(raw_common, start_date, end_date)
     print(f"    получено {len(common_schedule)} валидных общих слотов (из {len(raw_common)})")
 
-    # Итоговый JSON под контракт POST /events/drafts
     result = {
         "title": meta.get("title"),
         "description": None,

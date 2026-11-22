@@ -38,7 +38,6 @@ export default function Layout() {
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
 
-    // Формируем даты мероприятия.
     const dates = (() => {
         const { startDate, endDate } = event;
 
@@ -61,7 +60,6 @@ export default function Layout() {
         return result;
     })();
 
-    // Если период мероприятия изменился, выбираем первую доступную дату.
     const selectedProgramDate = dates.includes(activeProgramDate) ? activeProgramDate : dates[0] || '';
 
     useEffect(() => {

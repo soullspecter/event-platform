@@ -16,7 +16,10 @@ body {
 	margin: 0;
 	font-family: var(--font-family-body);
 	color: var(--color-text);
-	background: var(--gradient-page);
+	background:
+		radial-gradient(circle at 8% 0%, rgb(25 184 255 / 22%), transparent 38%),
+		var(--gradient-page);
+	background-attachment: fixed;
 	-webkit-font-smoothing: antialiased;
 }
 
@@ -41,7 +44,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 a:focus-visible {
-	outline: 3px solid rgb(121 84 246 / 35%);
+	outline: 3px solid rgb(25 184 255 / 60%);
 	outline-offset: 3px;
 }
 
@@ -64,8 +67,8 @@ h4 {
 }
 
 ::selection {
-	color: #fff;
-	background: #7954f6;
+	color: #ffffff;
+	background: #0a68d8;
 }
 
 #root {

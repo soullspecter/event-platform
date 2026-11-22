@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, Sparkles } from 'lucide-react'
+import { ArrowUpRight, CalendarDays } from 'lucide-react'
 
 import EventCard from '../../shared/components/event/EventCard/EventCard.jsx'
 import { eventsApi } from '../../shared/api/eventsApi.js'
@@ -218,18 +218,8 @@ export default function HomePage() {
 
 						<div className='home-hero__art-orb'>
 							<div className='home-hero__art-orb-shine' />
-							<Sparkles size={58} strokeWidth={1.25} />
+							<CalendarDays size={64} strokeWidth={1.25} />
 						</div>
-
-						<span className='home-hero__art-star home-hero__art-star--one'>
-							✳
-						</span>
-						<span className='home-hero__art-star home-hero__art-star--two'>
-							✦
-						</span>
-						<span className='home-hero__art-star home-hero__art-star--three'>
-							✧
-						</span>
 
 						<div className='home-hero__art-note'>
 							<span className='home-hero__art-note-dot' />
@@ -360,7 +350,7 @@ export default function HomePage() {
 					) : (
 						<div className='event-empty'>
 							<div className='event-empty__icon'>
-								<Sparkles size={28} />
+								<CalendarDays size={28} />
 							</div>
 
 							<h4>

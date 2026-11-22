@@ -25,7 +25,6 @@ export function buildProgramsPayload(programs = []) {
             itemDate: slot.itemDate || null,
             startTime: slot.startTime || null,
             endTime: slot.endTime || null,
-            // SaveScheduleItemDto expects nested `location`, not `locationPlaceId`.
             location: buildLocationPayload(slot),
         })),
     }));

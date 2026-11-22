@@ -9,7 +9,7 @@
         flex-direction: column;
         gap: 22px;
         padding: 26px;
-        border: 1px solid rgb(238 231 243 / 90%);
+        border: 1px solid rgb(231 236 243 / 90%);
         border-radius: var(--radius-lg);
         background: rgb(255 255 255 / 85%);
         box-shadow: var(--shadow-card);
@@ -40,7 +40,7 @@
         flex-direction: column;
         gap: 22px;
         padding: 26px;
-        border: 1px solid rgb(238 231 243 / 90%);
+        border: 1px solid rgb(231 236 243 / 90%);
         border-radius: var(--radius-lg);
         background: rgb(255 255 255 / 85%);
         box-shadow: var(--shadow-card);
@@ -71,9 +71,9 @@
             width: 100%;
             box-sizing: border-box;
             padding: 12px 14px;
-            border: 1px solid rgb(220 211 228);
+            border: 1px solid rgb(210 219 229);
             border-radius: 10px;
-            background: #fff;
+            background: #ffffff;
             color: var(--color-text);
             font-family: inherit;
             font-size: 14px;
@@ -84,11 +84,11 @@
 
             &:focus {
                 border-color: var(--color-primary);
-                box-shadow: 0 0 0 3px rgb(130 75 160 / 12%);
+                box-shadow: 0 0 0 3px rgb(72 113 163 / 12%);
             }
 
             &::placeholder {
-                color: #aaa1b0;
+                color: #a0a8b1;
             }
         }
 

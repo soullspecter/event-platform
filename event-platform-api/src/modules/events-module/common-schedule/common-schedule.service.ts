@@ -4,14 +4,18 @@ import { DataSource, EntityManager, In } from 'typeorm';
 import { Event } from '../events/entity/event.entity';
 import { LocationPlacesService } from '../location-places/location-places.service';
 
+import { CommonScheduleValidator } from './common-schedule.validator';
 import { SaveCommonScheduleItemDto } from './dto/save-common-schedule-item.dto';
 import { CommonScheduleItem } from './entity/common-schedule-item.entity';
+import { cleanText } from './utils/text.util';
+import { normalizeTime } from './utils/time.util';
 
 @Injectable()
 export class CommonScheduleService {
     constructor(
         private readonly dataSource: DataSource,
         private readonly locationPlacesService: LocationPlacesService,
+        private readonly validator: CommonScheduleValidator,
     ) {}
 
     async findAllByEvent(eventId: number, manager: EntityManager = this.dataSource.manager): Promise<CommonScheduleItem[]> {
@@ -48,10 +52,6 @@ export class CommonScheduleService {
         return { message: 'Пункт общего расписания удалён' };
     }
 
-    /**
-     * Полностью заменяет общее расписание мероприятия переданным списком.
-     * Пункты без commonItemId создаются, с commonItemId — обновляются, отсутствующие — удаляются.
-     */
     async replaceForEvent(manager: EntityManager, event: Event, dtos: SaveCommonScheduleItemDto[]): Promise<void> {
         const repo = manager.getRepository(CommonScheduleItem);
         const existing = await repo.find({ where: { eventId: event.eventId } });
@@ -82,50 +82,21 @@ export class CommonScheduleService {
     }
 
     private async applyDto(manager: EntityManager, event: Event, item: CommonScheduleItem, dto: SaveCommonScheduleItemDto): Promise<void> {
-        if (dto.name !== undefined) item.name = this.cleanText(dto.name);
+        if (dto.name !== undefined) item.name = cleanText(dto.name);
         if (dto.itemDate !== undefined) item.itemDate = dto.itemDate ?? null;
-        if (dto.startTime !== undefined) item.startTime = dto.startTime ? this.normalizeTime(dto.startTime) : null;
-        if (dto.endTime !== undefined) item.endTime = dto.endTime ? this.normalizeTime(dto.endTime) : null;
+        if (dto.startTime !== undefined) item.startTime = dto.startTime ? normalizeTime(dto.startTime) : null;
+        if (dto.endTime !== undefined) item.endTime = dto.endTime ? normalizeTime(dto.endTime) : null;
         if (dto.location !== undefined) {
             item.locationPlaceId = await this.locationPlacesService.resolveId(manager, dto);
             item.locationPlace = null;
         }
 
-        this.validateSlot(event, item);
+        this.validator.validateSlot(event, item);
     }
 
     private async findEvent(manager: EntityManager, eventId: number): Promise<Event> {
         const event = await manager.getRepository(Event).findOne({ where: { eventId } });
         if (!event) throw new NotFoundException('Мероприятие не найдено');
         return event;
-    }
-
-    private validateSlot(event: Event, slot: Pick<CommonScheduleItem, 'itemDate' | 'startTime' | 'endTime'>) {
-        if (slot.startTime && slot.endTime && this.timeToSeconds(slot.endTime) <= this.timeToSeconds(slot.startTime)) {
-            throw new BadRequestException('Время окончания должно быть позже времени начала');
-        }
-        if (slot.itemDate) {
-            if (event.startDate && slot.itemDate < event.startDate) {
-                throw new BadRequestException('Дата пункта расписания раньше даты начала мероприятия');
-            }
-            if (event.endDate && slot.itemDate > event.endDate) {
-                throw new BadRequestException('Дата пункта расписания позже даты окончания мероприятия');
-            }
-        }
-    }
-
-    private timeToSeconds(time: string): number {
-        const [h, m, s = '0'] = time.split(':');
-        return Number(h) * 3600 + Number(m) * 60 + Number(s);
-    }
-
-    private normalizeTime(time: string): string {
-        return time.length === 5 ? `${time}:00` : time;
-    }
-
-    private cleanText(value: string | null | undefined): string | null {
-        if (value == null) return null;
-        const trimmed = value.trim();
-        return trimmed.length > 0 ? trimmed : null;
     }
 }

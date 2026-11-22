@@ -87,10 +87,6 @@ export class ProgramsService {
         });
     }
 
-    /**
-     * Полностью заменяет набор программ мероприятия переданным списком.
-     * Программы без programId создаются, с programId — обновляются, отсутствующие — удаляются.
-     */
     async replaceForEvent(manager: EntityManager, event: Event, dtos: SaveProgramDto[]): Promise<void> {
         const repo = manager.getRepository(Program);
         const existing = await repo.find({ where: { eventId: event.eventId } });

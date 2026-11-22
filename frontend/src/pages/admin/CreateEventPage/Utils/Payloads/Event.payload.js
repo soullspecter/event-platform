@@ -8,8 +8,7 @@ export function buildEventPayload({ event, programs, commonSchedule }) {
         description: toTrimmedOrNull(event.description),
         startDate: event.startDate || null,
         endDate: event.endDate || null,
-        // Backend interprets these arrays as full replacement lists:
-        // omitted IDs are deleted, IDs are updated, entries without IDs are created.
+
         programs: buildProgramsPayload(programs),
         commonSchedule: buildCommonSchedulePayload(commonSchedule),
     };

@@ -13,11 +13,6 @@ export interface LocationSource {
 export class LocationPlacesService {
     constructor(private readonly locationsService: LocationsService) {}
 
-    /**
-     * Возвращает id площадки: либо проверяет переданный locationPlaceId,
-     * либо находит/создаёт локацию и площадку по данным, введённым вручную.
-     * Если место не указано, возвращает null.
-     */
     async resolveId(manager: EntityManager, source: LocationSource): Promise<number | null> {
         const place = source.location;
         if (!place) return null;

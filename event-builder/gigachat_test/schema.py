@@ -8,7 +8,7 @@ META_SCHEMA = {
     "required": ["title", "startDate", "endDate"],
 }
 
-# Шаг 2: Выделяем только смысловые программы
+
 PROGRAMS_LIST_SCHEMA = {
     "type": "object",
     "properties": {
@@ -28,7 +28,6 @@ PROGRAMS_LIST_SCHEMA = {
     "required": ["programs"],
 }
 
-# Шаг 3: Расписание для конкретной программы
 SCHEDULE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -58,7 +57,6 @@ SCHEDULE_SCHEMA = {
     "required": ["schedule"],
 }
 
-# Шаг 4: Общее расписание
 COMMON_SCHEDULE_SCHEMA = {
     "type": "object",
     "properties": {

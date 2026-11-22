@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Sparkles } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 
 import Login from '../Login/Login.jsx'
 import Register from '../Register/Register.jsx'
@@ -76,7 +76,7 @@ export default function AuthPanel({ isOpen, onClose, onAuthenticated }) {
 
 				<div className='auth-panel__decoration'>
 					<div className='auth-panel__decoration-icon'>
-						<Sparkles size={25} />
+						<CalendarDays size={25} />
 					</div>
 
 					<span className='auth-panel__orb auth-panel__orb--one' />
