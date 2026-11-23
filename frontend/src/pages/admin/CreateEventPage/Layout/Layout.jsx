@@ -1,26 +1,13 @@
-
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-    Check,
-    Save,
-    Send,
-    Info,
-    List,
-    ClipboardList,
-} from 'lucide-react';
+import { Check, Save, Send, Info, List, ClipboardList } from 'lucide-react';
 
 import { eventsApi } from '../../../../shared/api/eventsApi';
 import BasicInfoEditor from '../ProgramEditor/BasicInfo/BasicInfoEditor';
 import ProgramEditor from '../ProgramEditor/ProgramEditor/ProgramEditor';
-import QuestionnairesAdminPage from '../../QuestionnairesAdminPage.jsx';
+import QuestionnairesAdminPage from '../ProgramEditor/QuestionnairesEditor/QuestionnairesEditor';
 
-import {
-    getEventId,
-    normalizeEvent,
-    normalizePrograms,
-    normalizeCommonSchedule,
-} from '../Utils/eventForm.utils';
+import { getEventId, normalizeEvent, normalizePrograms, normalizeCommonSchedule } from '../Utils/eventForm.utils';
 
 import { buildEventPayload } from '../Utils/Payloads/Event.payload';
 
@@ -74,9 +61,7 @@ export default function Layout() {
         return result;
     })();
 
-    const selectedProgramDate = dates.includes(activeProgramDate)
-        ? activeProgramDate
-        : dates[0] || '';
+    const selectedProgramDate = dates.includes(activeProgramDate) ? activeProgramDate : dates[0] || '';
 
     useEffect(() => {
         let active = true;
@@ -92,12 +77,7 @@ export default function Layout() {
             setActiveProgramDate('');
 
             try {
-                const [places, data] = await Promise.all([
-                    eventsApi.getLocationPlaces(),
-                    routeEventId
-                        ? eventsApi.getForManagement(routeEventId)
-                        : Promise.resolve(null),
-                ]);
+                const [places, data] = await Promise.all([eventsApi.getLocationPlaces(), routeEventId ? eventsApi.getForManagement(routeEventId) : Promise.resolve(null)]);
 
                 if (!active) return;
 
@@ -106,9 +86,7 @@ export default function Layout() {
                 if (data) {
                     setEvent(normalizeEvent(data));
                     setPrograms(normalizePrograms(data.programs));
-                    setCommonSchedule(
-                        normalizeCommonSchedule(data.commonScheduleByDate),
-                    );
+                    setCommonSchedule(normalizeCommonSchedule(data.commonScheduleByDate));
                 }
             } catch (err) {
                 if (active) {
@@ -146,27 +124,18 @@ export default function Layout() {
             let savedData;
 
             if (currentEventId) {
-                savedData = await eventsApi.updateDraft(
-                    currentEventId,
-                    payload,
-                );
+                savedData = await eventsApi.updateDraft(currentEventId, payload);
             } else {
                 savedData = await eventsApi.createDraft(payload);
                 savedId = getEventId(savedData);
 
                 if (!savedId) {
-                    throw new Error(
-                        'Backend не вернул ID созданного мероприятия',
-                    );
+                    throw new Error('Backend не вернул ID созданного мероприятия');
                 }
 
                 setCurrentEventId(savedId);
 
-                window.history.replaceState(
-                    null,
-                    '',
-                    `/events/${savedId}/edit`,
-                );
+                window.history.replaceState(null, '', `/events/${savedId}/edit`);
             }
 
             if (publish) {
@@ -201,19 +170,11 @@ export default function Layout() {
         <main className="event-editor">
             <div className="event-editor__top">
                 <div className="event-editor__heading">
-                    <h1>
-                        {currentEventId
-                            ? 'Редактирование мероприятия'
-                            : 'Создание мероприятия'}
-                    </h1>
+                    <h1>{currentEventId ? 'Редактирование мероприятия' : 'Создание мероприятия'}</h1>
                 </div>
             </div>
 
-            {error && (
-                <div className="event-editor__alert event-editor__alert--error">
-                    {error}
-                </div>
-            )}
+            {error && <div className="event-editor__alert event-editor__alert--error">{error}</div>}
 
             {notice && (
                 <div className="event-editor__alert event-editor__alert--success">
@@ -223,69 +184,30 @@ export default function Layout() {
             )}
 
             <div className="event-editor__tabs">
-                <button
-                    type="button"
-                    className={`event-editor__tab ${
-                        activeTab === 'basic' ? 'is-active' : ''
-                    }`}
-                    onClick={() => setActiveTab('basic')}
-                >
+                <button type="button" className={`event-editor__tab ${activeTab === 'basic' ? 'is-active' : ''}`} onClick={() => setActiveTab('basic')}>
                     <Info size={18} />
-                    <span className="event-editor__tab-label">
-                        Основная информация
-                    </span>
+                    <span className="event-editor__tab-label">Основная информация</span>
                 </button>
 
-                <button
-                    type="button"
-                    className={`event-editor__tab ${
-                        activeTab === 'program' ? 'is-active' : ''
-                    }`}
-                    onClick={() => setActiveTab('program')}
-                >
+                <button type="button" className={`event-editor__tab ${activeTab === 'program' ? 'is-active' : ''}`} onClick={() => setActiveTab('program')}>
                     <List size={18} />
-                    <span className="event-editor__tab-label">
-                        Программа
-                    </span>
+                    <span className="event-editor__tab-label">Программа</span>
                 </button>
 
-                <button
-                    type="button"
-                    className={`event-editor__tab ${
-                        activeTab === 'questionnaires' ? 'is-active' : ''
-                    }`}
-                    onClick={() => setActiveTab('questionnaires')}
-                >
+                <button type="button" className={`event-editor__tab ${activeTab === 'questionnaires' ? 'is-active' : ''}`} onClick={() => setActiveTab('questionnaires')}>
                     <ClipboardList size={18} />
-                    <span className="event-editor__tab-label">
-                        Анкеты
-                    </span>
+                    <span className="event-editor__tab-label">Анкеты</span>
                 </button>
             </div>
 
             {activeTab === 'program' && dates.length > 0 && (
-                <div
-                    className="event-editor__date-tabs"
-                    aria-label="Даты мероприятия"
-                >
+                <div className="event-editor__date-tabs" aria-label="Даты мероприятия">
                     {dates.map((date) => (
-                        <button
-                            type="button"
-                            key={date}
-                            className={
-                                selectedProgramDate === date
-                                    ? 'is-active'
-                                    : ''
-                            }
-                            onClick={() => setActiveProgramDate(date)}
-                        >
-                            {new Date(`${date}T12:00:00}`).toLocaleDateString(
-                                'ru-RU',
-                                {
-                                    day: 'numeric',
-                                    month: 'short',
-                                },
-                            )}
+                        <button type="button" key={date} className={selectedProgramDate === date ? 'is-active' : ''} onClick={() => setActiveProgramDate(date)}>
+                            {new Date(`${date}T12:00:00}`).toLocaleDateString('ru-RU', {
+                                day: 'numeric',
+                                month: 'short',
+                            })}
                         </button>
                     ))}
                 </div>
@@ -294,12 +216,7 @@ export default function Layout() {
             <div className="event-editor__workspace">
                 <section className="event-editor__panel">
                     <div className="event-editor__tab-content">
-                        {activeTab === 'basic' && (
-                            <BasicInfoEditor
-                                event={event}
-                                onEventChange={setEvent}
-                            />
-                        )}
+                        {activeTab === 'basic' && <BasicInfoEditor event={event} onEventChange={setEvent} />}
 
                         {activeTab === 'program' && (
                             <ProgramEditor
@@ -333,32 +250,14 @@ export default function Layout() {
 
             <footer className="event-editor__bottom-bar">
                 <div className="event-editor__bottom-actions">
-                    <button
-                        type="button"
-                        className="event-editor__save"
-                        disabled={saving}
-                        onClick={() => handleSave(false)}
-                    >
+                    <button type="button" className="event-editor__save" disabled={saving} onClick={() => handleSave(false)}>
                         <Save size={17} />
-                        {saving
-                            ? 'Сохранение…'
-                            : 'Сохранить черновик'}
+                        {saving ? 'Сохранение…' : 'Сохранить черновик'}
                     </button>
 
-                    <button
-                        type="button"
-                        className="event-editor__publish"
-                        disabled={
-                            saving || event.status === 'published'
-                        }
-                        onClick={() => handleSave(true)}
-                    >
+                    <button type="button" className="event-editor__publish" disabled={saving || event.status === 'published'} onClick={() => handleSave(true)}>
                         <Send size={17} />
-                        {saving
-                            ? 'Обработка…'
-                            : event.status === 'published'
-                                ? 'Уже опубликовано'
-                                : 'Опубликовать'}
+                        {saving ? 'Обработка…' : event.status === 'published' ? 'Уже опубликовано' : 'Опубликовать'}
                     </button>
                 </div>
             </footer>

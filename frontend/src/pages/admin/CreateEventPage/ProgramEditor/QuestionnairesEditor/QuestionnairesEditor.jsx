@@ -1,16 +1,5 @@
-
 import { useState } from 'react';
-import {
-    Plus,
-    Trash2,
-    ClipboardList,
-    CalendarDays,
-    CircleHelp,
-    ListChecks,
-    Type,
-    Check,
-    X,
-} from 'lucide-react';
+import { Plus, Trash2, ClipboardList, CalendarDays, CircleHelp, ListChecks, Check, X } from 'lucide-react';
 
 import './QuestionnairesAdminPage.scss';
 
@@ -29,10 +18,7 @@ const createEmptyForm = () => ({
     questions: [createEmptyQuestion()],
 });
 
-export default function QuestionnairesAdminPage({
-    questionnaires = [],
-    onQuestionnairesChange,
-}) {
+export default function QuestionnairesAdminPage({ questionnaires = [], onQuestionnairesChange }) {
     const [form, setForm] = useState(createEmptyForm);
     const [error, setError] = useState('');
 
@@ -46,45 +32,27 @@ export default function QuestionnairesAdminPage({
     function updateQuestion(index, field, value) {
         setForm((current) => ({
             ...current,
-            questions: current.questions.map((question, i) =>
-                i === index
-                    ? { ...question, [field]: value }
-                    : question,
-            ),
+            questions: current.questions.map((question, i) => (i === index ? { ...question, [field]: value } : question)),
         }));
     }
 
     function addQuestion() {
         setForm((current) => ({
             ...current,
-            questions: [
-                ...current.questions,
-                createEmptyQuestion(),
-            ],
+            questions: [...current.questions, createEmptyQuestion()],
         }));
     }
 
     function removeQuestion(index) {
         setForm((current) => ({
             ...current,
-            questions: current.questions.filter(
-                (_, i) => i !== index,
-            ),
+            questions: current.questions.filter((_, i) => i !== index),
         }));
     }
 
     function changeQuestionType(index, type) {
-        updateQuestion(
-            index,
-            'type',
-            type,
-        );
-
-        updateQuestion(
-            index,
-            'options',
-            type === 'text' ? [] : [''],
-        );
+        updateQuestion(index, 'type', type);
+        updateQuestion(index, 'options', type === 'text' ? [] : ['']);
     }
 
     function addOption(questionIndex) {
@@ -93,9 +61,9 @@ export default function QuestionnairesAdminPage({
             questions: current.questions.map((question, i) =>
                 i === questionIndex
                     ? {
-                        ...question,
-                        options: [...question.options, ''],
-                    }
+                          ...question,
+                          options: [...question.options, ''],
+                      }
                     : question,
             ),
         }));
@@ -107,11 +75,9 @@ export default function QuestionnairesAdminPage({
             questions: current.questions.map((question, i) =>
                 i === questionIndex
                     ? {
-                        ...question,
-                        options: question.options.map((option, j) =>
-                            j === optionIndex ? value : option,
-                        ),
-                    }
+                          ...question,
+                          options: question.options.map((option, j) => (j === optionIndex ? value : option)),
+                      }
                     : question,
             ),
         }));
@@ -123,11 +89,9 @@ export default function QuestionnairesAdminPage({
             questions: current.questions.map((question, i) =>
                 i === questionIndex
                     ? {
-                        ...question,
-                        options: question.options.filter(
-                            (_, j) => j !== optionIndex,
-                        ),
-                    }
+                          ...question,
+                          options: question.options.filter((_, j) => j !== optionIndex),
+                      }
                     : question,
             ),
         }));
@@ -154,23 +118,17 @@ export default function QuestionnairesAdminPage({
             }
 
             if (question.type !== 'text') {
-                const validOptions = question.options.filter(
-                    (option) => option.trim(),
-                );
+                const validOptions = question.options.filter((option) => option.trim());
 
                 if (validOptions.length < 2) {
-                    setError(
-                        `В вопросе №${index + 1} должно быть минимум два варианта ответа.`,
-                    );
+                    setError(`В вопросе №${index + 1} должно быть минимум два варианта ответа.`);
                     return;
                 }
             }
         }
 
         const newQuestionnaire = {
-            localId: `questionnaire-${Date.now()}-${Math.random()
-                .toString(36)
-                .slice(2, 8)}`,
+            localId: `questionnaire-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             title: form.title.trim(),
             description: form.description.trim(),
             availableFrom: form.availableFrom || null,
@@ -181,30 +139,18 @@ export default function QuestionnairesAdminPage({
                 type: question.type,
                 isRequired: question.isRequired,
                 sortOrder: index,
-                options: question.type === 'text'
-                    ? []
-                    : question.options
-                        .map((option) => option.trim())
-                        .filter(Boolean),
+                options: question.type === 'text' ? [] : question.options.map((option) => option.trim()).filter(Boolean),
             })),
         };
 
-        onQuestionnairesChange([
-            ...questionnaires,
-            newQuestionnaire,
-        ]);
+        onQuestionnairesChange([...questionnaires, newQuestionnaire]);
 
         setForm(createEmptyForm());
         setError('');
     }
 
     function removeQuestionnaire(localId) {
-        onQuestionnairesChange(
-            questionnaires.filter(
-                (questionnaire) =>
-                    questionnaire.localId !== localId,
-            ),
-        );
+        onQuestionnairesChange(questionnaires.filter((questionnaire) => questionnaire.localId !== localId));
     }
 
     return (
@@ -216,22 +162,15 @@ export default function QuestionnairesAdminPage({
 
                 <div>
                     <h2>Анкеты мероприятия</h2>
-                    <p>
-                        Создавайте опросы и собирайте ответы участников
-                    </p>
+                    <p>Создавайте опросы и собирайте ответы участников</p>
                 </div>
             </div>
 
-            <form
-                className="questionnaires-admin__form"
-                onSubmit={handleSubmit}
-            >
+            <form className="questionnaires-admin__form" onSubmit={handleSubmit}>
                 <div className="questionnaires-admin__section-heading">
                     <div>
                         <h3>Новая анкета</h3>
-                        <p>
-                            Настройте название, сроки проведения и вопросы
-                        </p>
+                        <p>Настройте название, сроки проведения и вопросы</p>
                     </div>
                 </div>
 
@@ -245,24 +184,14 @@ export default function QuestionnairesAdminPage({
                 <div className="questionnaires-admin__fields">
                     <label className="questionnaires-admin__field questionnaires-admin__field--full">
                         <span>Название анкеты</span>
-                        <input
-                            type="text"
-                            value={form.title}
-                            onChange={(event) =>
-                                updateForm('title', event.target.value)
-                            }
-                            placeholder="Например, Регистрация участников"
-                            maxLength={255}
-                        />
+                        <input type="text" value={form.title} onChange={(event) => updateForm('title', event.target.value)} placeholder="Например, Регистрация участников" maxLength={255} />
                     </label>
 
                     <label className="questionnaires-admin__field questionnaires-admin__field--full">
                         <span>Описание</span>
                         <textarea
                             value={form.description}
-                            onChange={(event) =>
-                                updateForm('description', event.target.value)
-                            }
+                            onChange={(event) => updateForm('description', event.target.value)}
                             placeholder="Расскажите участникам, для чего нужна эта анкета..."
                             rows={3}
                         />
@@ -273,13 +202,7 @@ export default function QuestionnairesAdminPage({
                             <CalendarDays size={15} />
                             Доступна с
                         </span>
-                        <input
-                            type="datetime-local"
-                            value={form.availableFrom}
-                            onChange={(event) =>
-                                updateForm('availableFrom', event.target.value)
-                            }
-                        />
+                        <input type="datetime-local" value={form.availableFrom} onChange={(event) => updateForm('availableFrom', event.target.value)} />
                     </label>
 
                     <label className="questionnaires-admin__field">
@@ -287,40 +210,24 @@ export default function QuestionnairesAdminPage({
                             <CalendarDays size={15} />
                             Доступна до
                         </span>
-                        <input
-                            type="datetime-local"
-                            value={form.availableUntil}
-                            onChange={(event) =>
-                                updateForm('availableUntil', event.target.value)
-                            }
-                        />
+                        <input type="datetime-local" value={form.availableUntil} onChange={(event) => updateForm('availableUntil', event.target.value)} />
                     </label>
                 </div>
 
                 <div className="questionnaires-admin__questions-heading">
                     <div>
                         <h3>Вопросы анкеты</h3>
-                        <p>
-                            Добавьте вопросы, на которые будут отвечать участники
-                        </p>
+                        <p>Добавьте вопросы, на которые будут отвечать участники</p>
                     </div>
 
                     <span className="questionnaires-admin__count">
-                        {form.questions.length}{' '}
-                        {form.questions.length === 1
-                            ? 'вопрос'
-                            : form.questions.length < 5
-                                ? 'вопроса'
-                                : 'вопросов'}
+                        {form.questions.length} {form.questions.length === 1 ? 'вопрос' : form.questions.length < 5 ? 'вопроса' : 'вопросов'}
                     </span>
                 </div>
 
                 <div className="questionnaires-admin__questions">
                     {form.questions.map((question, index) => (
-                        <article
-                            className="questionnaires-admin__question"
-                            key={index}
-                        >
+                        <article className="questionnaires-admin__question" key={index}>
                             <div className="questionnaires-admin__question-top">
                                 <div className="questionnaires-admin__question-number">
                                     <CircleHelp size={17} />
@@ -340,56 +247,21 @@ export default function QuestionnairesAdminPage({
 
                             <label className="questionnaires-admin__field">
                                 <span>Текст вопроса</span>
-                                <input
-                                    type="text"
-                                    value={question.text}
-                                    onChange={(event) =>
-                                        updateQuestion(
-                                            index,
-                                            'text',
-                                            event.target.value,
-                                        )
-                                    }
-                                    placeholder="Введите формулировку вопроса"
-                                />
+                                <input type="text" value={question.text} onChange={(event) => updateQuestion(index, 'text', event.target.value)} placeholder="Введите формулировку вопроса" />
                             </label>
 
                             <div className="questionnaires-admin__question-settings">
                                 <label className="questionnaires-admin__field">
                                     <span>Тип ответа</span>
-                                    <select
-                                        value={question.type}
-                                        onChange={(event) =>
-                                            changeQuestionType(
-                                                index,
-                                                event.target.value,
-                                            )
-                                        }
-                                    >
-                                        <option value="text">
-                                            Свободный текст
-                                        </option>
-                                        <option value="single_choice">
-                                            Один вариант ответа
-                                        </option>
-                                        <option value="multiple_choice">
-                                            Несколько вариантов
-                                        </option>
+                                    <select value={question.type} onChange={(event) => changeQuestionType(index, event.target.value)}>
+                                        <option value="text">Свободный текст</option>
+                                        <option value="single_choice">Один вариант ответа</option>
+                                        <option value="multiple_choice">Несколько вариантов</option>
                                     </select>
                                 </label>
 
                                 <label className="questionnaires-admin__required">
-                                    <input
-                                        type="checkbox"
-                                        checked={question.isRequired}
-                                        onChange={(event) =>
-                                            updateQuestion(
-                                                index,
-                                                'isRequired',
-                                                event.target.checked,
-                                            )
-                                        }
-                                    />
+                                    <input type="checkbox" checked={question.isRequired} onChange={(event) => updateQuestion(index, 'isRequired', event.target.checked)} />
                                     <span>Обязательный вопрос</span>
                                 </label>
                             </div>
@@ -402,33 +274,20 @@ export default function QuestionnairesAdminPage({
                                     </div>
 
                                     {question.options.map((option, optionIndex) => (
-                                        <div
-                                            className="questionnaires-admin__option"
-                                            key={optionIndex}
-                                        >
-                                            <span className="questionnaires-admin__option-marker">
-                                                {optionIndex + 1}
-                                            </span>
+                                        <div className="questionnaires-admin__option" key={optionIndex}>
+                                            <span className="questionnaires-admin__option-marker">{optionIndex + 1}</span>
 
                                             <input
                                                 type="text"
                                                 value={option}
-                                                onChange={(event) =>
-                                                    updateOption(
-                                                        index,
-                                                        optionIndex,
-                                                        event.target.value,
-                                                    )
-                                                }
+                                                onChange={(event) => updateOption(index, optionIndex, event.target.value)}
                                                 placeholder={`Вариант ответа ${optionIndex + 1}`}
                                             />
 
                                             <button
                                                 type="button"
                                                 className="questionnaires-admin__icon-button questionnaires-admin__icon-button--danger"
-                                                onClick={() =>
-                                                    removeOption(index, optionIndex)
-                                                }
+                                                onClick={() => removeOption(index, optionIndex)}
                                                 title="Удалить вариант"
                                             >
                                                 <X size={17} />
@@ -436,11 +295,7 @@ export default function QuestionnairesAdminPage({
                                         </div>
                                     ))}
 
-                                    <button
-                                        type="button"
-                                        className="questionnaires-admin__add-option"
-                                        onClick={() => addOption(index)}
-                                    >
+                                    <button type="button" className="questionnaires-admin__add-option" onClick={() => addOption(index)}>
                                         <Plus size={16} />
                                         Добавить вариант ответа
                                     </button>
@@ -451,19 +306,12 @@ export default function QuestionnairesAdminPage({
                 </div>
 
                 <div className="questionnaires-admin__form-actions">
-                    <button
-                        type="button"
-                        className="questionnaires-admin__button questionnaires-admin__button--secondary"
-                        onClick={addQuestion}
-                    >
+                    <button type="button" className="questionnaires-admin__button questionnaires-admin__button--secondary" onClick={addQuestion}>
                         <Plus size={17} />
                         Добавить вопрос
                     </button>
 
-                    <button
-                        type="submit"
-                        className="questionnaires-admin__button questionnaires-admin__button--primary"
-                    >
+                    <button type="submit" className="questionnaires-admin__button questionnaires-admin__button--primary">
                         <Check size={17} />
                         Добавить анкету
                     </button>
@@ -474,14 +322,10 @@ export default function QuestionnairesAdminPage({
                 <div className="questionnaires-admin__section-heading">
                     <div>
                         <h3>Созданные анкеты</h3>
-                        <p>
-                            Анкеты будут сохранены вместе с мероприятием
-                        </p>
+                        <p>Анкеты будут сохранены вместе с мероприятием</p>
                     </div>
 
-                    <span className="questionnaires-admin__count">
-                        {questionnaires.length}
-                    </span>
+                    <span className="questionnaires-admin__count">{questionnaires.length}</span>
                 </div>
 
                 {questionnaires.length === 0 ? (
@@ -490,51 +334,30 @@ export default function QuestionnairesAdminPage({
                             <ClipboardList size={26} />
                         </div>
                         <strong>Пока нет ни одной анкеты</strong>
-                        <p>
-                            Создайте первую анкету с помощью формы выше
-                        </p>
+                        <p>Создайте первую анкету с помощью формы выше</p>
                     </div>
                 ) : (
                     <div className="questionnaires-admin__created-list">
                         {questionnaires.map((questionnaire, index) => (
-                            <article
-                                className="questionnaires-admin__created-card"
-                                key={
-                                    questionnaire.localId ||
-                                    questionnaire.questionnaireId ||
-                                    index
-                                }
-                            >
+                            <article className="questionnaires-admin__created-card" key={questionnaire.localId || questionnaire.questionnaireId || index}>
                                 <div className="questionnaires-admin__created-icon">
                                     <ClipboardList size={20} />
                                 </div>
 
                                 <div className="questionnaires-admin__created-info">
                                     <h4>{questionnaire.title}</h4>
-                                    <p>
-                                        {questionnaire.description ||
-                                            'Описание не указано'}
-                                    </p>
-                                    <span>
-                                        {questionnaire.questions?.length || 0}{' '}
-                                        вопросов
-                                    </span>
+                                    <p>{questionnaire.description || 'Описание не указано'}</p>
+                                    <span>{questionnaire.questions?.length || 0} вопросов</span>
                                 </div>
 
                                 <div className="questionnaires-admin__created-actions">
-                                    <span className="questionnaires-admin__status">
-                                        Черновик
-                                    </span>
+                                    <span className="questionnaires-admin__status">Черновик</span>
 
                                     {questionnaire.localId && (
                                         <button
                                             type="button"
                                             className="questionnaires-admin__icon-button questionnaires-admin__icon-button--danger"
-                                            onClick={() =>
-                                                removeQuestionnaire(
-                                                    questionnaire.localId,
-                                                )
-                                            }
+                                            onClick={() => removeQuestionnaire(questionnaire.localId)}
                                             title="Удалить анкету"
                                         >
                                             <Trash2 size={17} />
