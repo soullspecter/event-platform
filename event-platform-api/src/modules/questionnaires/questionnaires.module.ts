@@ -12,18 +12,9 @@ import { Answer } from './entities/answer.entity';
 import { AnswerOption } from './entities/answer-option.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Questionnaire,
-      Question,
-      QuestionOption,
-      QuestionnaireSubmission,
-      Answer,
-      AnswerOption,
-    ]),
-  ],
-  controllers: [QuestionnairesController],
-  providers: [QuestionnairesService],
-  exports: [QuestionnairesService],
+    imports: [TypeOrmModule.forFeature([Questionnaire, Question, QuestionOption, QuestionnaireSubmission, Answer, AnswerOption])],
+    controllers: [QuestionnairesController],
+    providers: [QuestionnairesService],
+    exports: [QuestionnairesService],
 })
 export class QuestionnairesModule {}

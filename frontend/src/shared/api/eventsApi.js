@@ -147,3 +147,15 @@ export const eventsApi = {
         );
     },
 };
+
+export const registrationsApi = {
+    getStatus(eventId) {
+        return request(`/events/${eventId}/registration/status`);
+    },
+    register(eventId) {
+        return post(`/events/${eventId}/registration`);
+    },
+    unregister(eventId) {
+        return remove(`/events/${eventId}/registration`);
+    },
+};

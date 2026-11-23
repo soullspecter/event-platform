@@ -1,0 +1,73 @@
+// RegisterButton.scss
+// Подгоняй цвета/отступы под дизайн проекта — переменные замени на свои.
+
+.register-button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 20px;
+
+    &__btn {
+        appearance: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 200px;
+        padding: 12px 24px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: #2563eb;
+        color: #fff;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.2;
+        cursor: pointer;
+        transition:
+            background-color 0.15s ease,
+            border-color 0.15s ease,
+            color 0.15s ease,
+            transform 0.1s ease;
+
+        &:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        &:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        &:focus-visible {
+            outline: 2px solid #1d4ed8;
+            outline-offset: 2px;
+        }
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        // Состояние "Отменить регистрацию" — контурная кнопка
+        &--cancel {
+            background: transparent;
+            color: #dc2626;
+            border-color: #dc2626;
+
+            &:hover:not(:disabled) {
+                background: rgba(220, 38, 38, 0.08);
+            }
+
+            &:focus-visible {
+                outline-color: #dc2626;
+            }
+        }
+    }
+
+    &__error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+}

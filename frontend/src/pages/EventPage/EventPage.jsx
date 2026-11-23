@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Clock, MapPin, CalendarDays } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-
+import RegisterButton from './feature/RegisterButton.jsx';
 import { eventsApi } from '../../shared/api/eventsApi.js';
 import './EventPage.scss';
 
@@ -109,8 +109,8 @@ export default function EventPage() {
             <header className="public-event__hero">
                 <h1>{event.title || 'Без названия'}</h1>
                 {event.description && <p>{event.description}</p>}
+                <RegisterButton key={event.eventId} eventId={event.eventId} />
             </header>
-
             {dates.length > 0 && (
                 <section className="public-event__section">
                     {dates.length > 1 && (

@@ -137,8 +137,6 @@ export default function ProgramEditor({ event, dates = [], selectedDate = '', pr
     const [selectedId, setSelectedId] = useState(null);
     const [selectedType, setSelectedType] = useState('program');
 
-    // Выбранные пункты общего расписания — по clientId, а не по дате.
-    // Это защищает форму от "исчезновения" при смене даты внутри слота.
     const [selectedCommonIds, setSelectedCommonIds] = useState([]);
 
     const selectedProgram = programs.find((program) => program.clientId === selectedId);
@@ -165,7 +163,6 @@ export default function ProgramEditor({ event, dates = [], selectedDate = '', pr
 
         setSelectedType('common');
         setSelectedId(selectedDate);
-        // Показываем все существующие пункты этого дня.
         setSelectedCommonIds(commonForDate.map((item) => item.clientId));
     }
 
