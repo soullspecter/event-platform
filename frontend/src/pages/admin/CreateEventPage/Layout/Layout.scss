@@ -1,3 +1,4 @@
+
 .event-editor {
     width: min(1180px, calc(100% - 48px));
     margin: 0 auto;
@@ -57,9 +58,12 @@
 
     /* Основные вкладки */
     &__tabs {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: stretch;
         gap: 12px;
+        width: 100%;
         margin-bottom: 18px;
         padding: 10px;
         border: 1px solid rgb(231 236 243 / 90%);
@@ -70,6 +74,7 @@
 
     &__tab {
         display: flex;
+        flex: 1 1 0;
         align-items: center;
         justify-content: center;
         gap: 10px;
@@ -81,6 +86,7 @@
         background: transparent;
         color: var(--color-text);
         text-align: center;
+        white-space: nowrap;
         cursor: pointer;
         transition:
             background var(--transition-fast),
@@ -280,7 +286,7 @@
     }
 }
 
-/* Адаптация под планшеты и телефоны */
+/* Адаптация под планшеты */
 @media (max-width: 900px) {
     .event-editor {
         &__date-tabs {
@@ -291,9 +297,18 @@
                 min-width: 100px;
             }
         }
+
+        &__tab {
+            padding: 12px 10px;
+        }
+
+        &__tab-label {
+            font-size: 13px;
+        }
     }
 }
 
+/* Адаптация под телефоны */
 @media (max-width: 600px) {
     .event-editor {
         width: calc(100% - 24px);
@@ -308,18 +323,26 @@
         }
 
         &__tabs {
-            gap: 6px;
-            padding: 7px;
-            margin-bottom: 12px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 5px;
+            padding: 6px;
+            overflow-x: auto;
+            scrollbar-width: thin;
         }
 
         &__tab {
+            flex: 1 0 0;
+            min-width: 0;
             min-height: 54px;
-            padding: 10px 6px;
+            padding: 10px 5px;
+            gap: 5px;
         }
 
         &__tab-label {
-            font-size: 12px;
+            font-size: 11px;
+            line-height: 1.2;
         }
 
         &__date-tabs {
