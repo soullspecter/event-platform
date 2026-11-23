@@ -21,11 +21,82 @@ const EMPTY_EVENT = {
     status: 'draft',
 };
 
+// Нормализуем дату до YYYY-MM-DD.
+// Поддерживаем ISO-строки и обычные строки с датой.
+function normalizeDate(value) {
+    if (!value) return '';
+
+    const dateString = String(value).trim();
+
+    if (!dateString) return '';
+
+    const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    if (!match) return '';
+
+    const [, year, month, day] = match;
+
+    const y = Number(year);
+    const m = Number(month);
+    const d = Number(day);
+
+    const date = new Date(Date.UTC(y, m - 1, d));
+
+    if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) {
+        return '';
+    }
+
+    return `${year}-${month}-${day}`;
+}
+
+// Форматирование даты для интерфейса.
+function formatDate(value) {
+    const normalized = normalizeDate(value);
+
+    if (!normalized) return '';
+
+    const [year, month, day] = normalized.split('-').map(Number);
+
+    const date = new Date(Date.UTC(year, month - 1, day));
+
+    return date.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+    });
+}
+
+// Получение всех дат мероприятия.
+function getEventDates(startDate, endDate) {
+    const start = normalizeDate(startDate);
+    const end = normalizeDate(endDate);
+
+    if (!start || !end || end < start) {
+        return [];
+    }
+
+    const [sy, sm, sd] = start.split('-').map(Number);
+    const [ey, em, ed] = end.split('-').map(Number);
+
+    const startTimestamp = Date.UTC(sy, sm - 1, sd);
+    const endTimestamp = Date.UTC(ey, em - 1, ed);
+
+    const result = [];
+
+    for (let current = startTimestamp; current <= endTimestamp; current += 86400000) {
+        result.push(new Date(current).toISOString().slice(0, 10));
+    }
+
+    return result;
+}
+
 export default function Layout() {
     const params = useParams();
+
     const routeEventId = params.eventId ?? params.id ?? null;
 
     const [currentEventId, setCurrentEventId] = useState(routeEventId);
+
     const [event, setEvent] = useState(EMPTY_EVENT);
     const [programs, setPrograms] = useState([]);
     const [commonSchedule, setCommonSchedule] = useState([]);
@@ -36,41 +107,29 @@ export default function Layout() {
 
     const [loading, setLoading] = useState(Boolean(routeEventId));
     const [saving, setSaving] = useState(false);
+
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
 
-    const dates = (() => {
-        const { startDate, endDate } = event;
+    // Даты мероприятия.
+    const dates = getEventDates(event.startDate, event.endDate);
 
-        if (!startDate || !endDate || endDate < startDate) {
-            return [];
-        }
-
-        const result = [];
-
-        const [sy, sm, sd] = startDate.split('-').map(Number);
-        const [ey, em, ed] = endDate.split('-').map(Number);
-
-        const start = Date.UTC(sy, sm - 1, sd);
-        const end = Date.UTC(ey, em - 1, ed);
-
-        for (let current = start; current <= end; current += 86400000) {
-            result.push(new Date(current).toISOString().slice(0, 10));
-        }
-
-        return result;
-    })();
-
+    // Если выбранная дата больше не существует,
+    // автоматически выбираем первую доступную.
     const selectedProgramDate = dates.includes(activeProgramDate) ? activeProgramDate : dates[0] || '';
 
+    // Загрузка мероприятия.
     useEffect(() => {
         let active = true;
 
         async function load() {
             setLoading(true);
+
             setError('');
             setNotice('');
+
             setCurrentEventId(routeEventId);
+
             setEvent(EMPTY_EVENT);
             setPrograms([]);
             setCommonSchedule([]);
@@ -106,11 +165,13 @@ export default function Layout() {
         };
     }, [routeEventId]);
 
+    // Сохранение черновика или публикация.
     async function handleSave(publish = false) {
         if (saving) return;
 
         setError('');
         setNotice('');
+
         setSaving(true);
 
         try {
@@ -127,6 +188,7 @@ export default function Layout() {
                 savedData = await eventsApi.updateDraft(currentEventId, payload);
             } else {
                 savedData = await eventsApi.createDraft(payload);
+
                 savedId = getEventId(savedData);
 
                 if (!savedId) {
@@ -168,14 +230,17 @@ export default function Layout() {
 
     return (
         <main className="event-editor">
+            {/* Заголовок */}
             <div className="event-editor__top">
                 <div className="event-editor__heading">
                     <h1>{currentEventId ? 'Редактирование мероприятия' : 'Создание мероприятия'}</h1>
                 </div>
             </div>
 
+            {/* Ошибка */}
             {error && <div className="event-editor__alert event-editor__alert--error">{error}</div>}
 
+            {/* Уведомление */}
             {notice && (
                 <div className="event-editor__alert event-editor__alert--success">
                     <Check size={18} />
@@ -183,6 +248,7 @@ export default function Layout() {
                 </div>
             )}
 
+            {/* Основные вкладки */}
             <div className="event-editor__tabs">
                 <button type="button" className={`event-editor__tab ${activeTab === 'basic' ? 'is-active' : ''}`} onClick={() => setActiveTab('basic')}>
                     <Info size={18} />
@@ -200,24 +266,25 @@ export default function Layout() {
                 </button>
             </div>
 
+            {/* Выбор даты программы */}
             {activeTab === 'program' && dates.length > 0 && (
                 <div className="event-editor__date-tabs" aria-label="Даты мероприятия">
                     {dates.map((date) => (
                         <button type="button" key={date} className={selectedProgramDate === date ? 'is-active' : ''} onClick={() => setActiveProgramDate(date)}>
-                            {new Date(`${date}T12:00:00}`).toLocaleDateString('ru-RU', {
-                                day: 'numeric',
-                                month: 'short',
-                            })}
+                            {formatDate(date)}
                         </button>
                     ))}
                 </div>
             )}
 
+            {/* Рабочая область */}
             <div className="event-editor__workspace">
                 <section className="event-editor__panel">
                     <div className="event-editor__tab-content">
+                        {/* Основная информация */}
                         {activeTab === 'basic' && <BasicInfoEditor event={event} onEventChange={setEvent} />}
 
+                        {/* Программа */}
                         {activeTab === 'program' && (
                             <ProgramEditor
                                 event={event}
@@ -231,6 +298,7 @@ export default function Layout() {
                             />
                         )}
 
+                        {/* Анкеты */}
                         {activeTab === 'questionnaires' && (
                             <QuestionnairesAdminPage
                                 eventId={currentEventId}
@@ -248,15 +316,18 @@ export default function Layout() {
                 </section>
             </div>
 
+            {/* Нижняя панель действий */}
             <footer className="event-editor__bottom-bar">
                 <div className="event-editor__bottom-actions">
                     <button type="button" className="event-editor__save" disabled={saving} onClick={() => handleSave(false)}>
                         <Save size={17} />
+
                         {saving ? 'Сохранение…' : 'Сохранить черновик'}
                     </button>
 
                     <button type="button" className="event-editor__publish" disabled={saving || event.status === 'published'} onClick={() => handleSave(true)}>
                         <Send size={17} />
+
                         {saving ? 'Обработка…' : event.status === 'published' ? 'Уже опубликовано' : 'Опубликовать'}
                     </button>
                 </div>

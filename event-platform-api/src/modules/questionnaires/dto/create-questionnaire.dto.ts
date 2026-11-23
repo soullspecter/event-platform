@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsDateString, IsInt, IsOptional, IsString, MaxLength, MinLength, ValidateNested, IsIn } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class CreateOptionDto {
@@ -9,12 +9,14 @@ class CreateOptionDto {
 
     @IsOptional()
     @IsInt()
+    @Min(0)
     sortOrder?: number;
 }
 
 class CreateQuestionDto {
     @IsString()
     @MinLength(1)
+    @MaxLength(1000)
     text: string;
 
     @IsIn(['text', 'single_choice', 'multiple_choice'])
@@ -26,6 +28,7 @@ class CreateQuestionDto {
 
     @IsOptional()
     @IsInt()
+    @Min(0)
     sortOrder?: number;
 
     @IsOptional()
@@ -37,6 +40,7 @@ class CreateQuestionDto {
 
 export class CreateQuestionnaireDto {
     @IsInt()
+    @Min(1)
     eventId: number;
 
     @IsString()
@@ -46,11 +50,11 @@ export class CreateQuestionnaireDto {
 
     @IsOptional()
     @IsDateString()
-    availableFrom?: string;
+    availableFrom?: string | null;
 
     @IsOptional()
     @IsDateString()
-    availableUntil?: string;
+    availableUntil?: string | null;
 
     @IsOptional()
     @IsBoolean()

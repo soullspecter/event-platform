@@ -2,7 +2,6 @@ import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Req } from
 import { FastifyRequest } from 'fastify';
 
 import { QuestionnairesService } from './questionnaires.service';
-import { CreateQuestionnaireDto } from './dto/create-questionnaire.dto';
 import { SubmitQuestionnaireDto } from './dto/submit-questionnaire.dto';
 
 import { JwtAuthGuard } from '../auth/jwt/jwt-auth.guard';
@@ -20,6 +19,7 @@ interface AuthenticatedFastifyRequest extends FastifyRequest {
 export class QuestionnairesController {
     constructor(private readonly questionnairesService: QuestionnairesService) {}
 
+    // Получение всех анкет мероприятия для администратора
     @Get('event/:eventId')
     @UseGuards(RolesGuard)
     @Roles('admin')
@@ -27,18 +27,13 @@ export class QuestionnairesController {
         return this.questionnairesService.findForEvent(eventId);
     }
 
-    @Post()
-    @UseGuards(RolesGuard)
-    @Roles('admin')
-    create(@Body() dto: CreateQuestionnaireDto) {
-        return this.questionnairesService.create(dto);
-    }
-
+    // Получение доступных анкет для участника
     @Get('available/:eventId')
     findAvailable(@Param('eventId', ParseIntPipe) eventId: number, @Req() req: AuthenticatedFastifyRequest) {
         return this.questionnairesService.findAvailableForUser(eventId, req.user.userId);
     }
 
+    // Отправка ответов на анкету
     @Post(':id/submit')
     submit(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedFastifyRequest, @Body() dto: SubmitQuestionnaireDto) {
         return this.questionnairesService.submit(id, req.user.userId, dto);

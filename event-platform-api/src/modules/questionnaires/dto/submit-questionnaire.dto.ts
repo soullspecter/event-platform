@@ -1,8 +1,9 @@
-import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 class SubmitAnswerDto {
     @IsInt()
+    @Min(1)
     questionId: number;
 
     @IsOptional()
@@ -12,6 +13,7 @@ class SubmitAnswerDto {
     @IsOptional()
     @IsArray()
     @IsInt({ each: true })
+    @Min(1, { each: true })
     optionIds?: number[];
 }
 

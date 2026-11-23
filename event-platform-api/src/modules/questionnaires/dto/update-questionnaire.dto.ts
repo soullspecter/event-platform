@@ -1,17 +1,35 @@
-import { IsArray, IsBoolean, IsDateString, IsInt, IsOptional, IsString, MaxLength, ValidateNested, Min } from 'class-validator';
-
 import { Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+
+class UpdateOptionDto {
+    @IsOptional()
+    @IsInt()
+    @Min(1)
+    optionId?: number;
+
+    @IsString()
+    @MinLength(1)
+    @MaxLength(500)
+    text: string;
+
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    sortOrder?: number;
+}
 
 class UpdateQuestionDto {
     @IsOptional()
     @IsInt()
+    @Min(1)
     questionId?: number;
 
     @IsString()
+    @MinLength(1)
     @MaxLength(1000)
     text: string;
 
-    @IsString()
+    @IsIn(['text', 'single_choice', 'multiple_choice'])
     type: 'text' | 'single_choice' | 'multiple_choice';
 
     @IsOptional()
@@ -25,23 +43,25 @@ class UpdateQuestionDto {
 
     @IsOptional()
     @IsArray()
-    @IsString({ each: true })
-    options?: string[];
+    @ValidateNested({ each: true })
+    @Type(() => UpdateOptionDto)
+    options?: UpdateOptionDto[];
 }
 
 export class UpdateQuestionnaireDto {
     @IsOptional()
     @IsString()
+    @MinLength(1)
     @MaxLength(255)
     title?: string;
 
     @IsOptional()
     @IsDateString()
-    availableFrom?: string;
+    availableFrom?: string | null;
 
     @IsOptional()
     @IsDateString()
-    availableUntil?: string;
+    availableUntil?: string | null;
 
     @IsOptional()
     @IsBoolean()

@@ -8,8 +8,8 @@ import CreateEventPage from '../pages/admin/CreateEventPage/Layout/Layout.jsx';
 import DraftsPage from '../pages/admin/CreateEventPage/Drafts/DraftsPage.jsx';
 import { authApi } from '../shared/api/auth.api.js';
 import EventHistoryPage from '../pages/EventHistoryPage/EventHistoryPage.jsx';
-import QuestionnairesAdminPage from '../pages/admin/QuestionnairesAdminPage.jsx';
-import QuestionnairesPage from '../pages/QuestionnairesPage.jsx';
+import QuestionnairesAdminPage from '../pages/admin/CreateEventPage/ProgramEditor/QuestionnairesEditor/QuestionnairesEditor.jsx';
+import QuestionnairesPage from '../pages/QuestionnairesPage/QuestionnairesPage.jsx';
 
 function AdminRoute({ children }) {
     const user = authApi.getUser();
