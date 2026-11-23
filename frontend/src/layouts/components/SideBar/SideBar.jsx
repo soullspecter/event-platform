@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { X, CalendarPlus, FileText } from 'lucide-react';
+import { X, CalendarPlus, FileText, History } from 'lucide-react';
 
 import './SideBar.scss';
 
@@ -7,6 +7,7 @@ export default function SideBar({ isOpen, onClose, isAdmin }) {
     const { pathname } = useLocation();
 
     const isDraftsActive = pathname.startsWith('/events/drafts');
+    const isHistoryActive = pathname.startsWith('/events/history');
 
     return (
         <>
@@ -34,6 +35,11 @@ export default function SideBar({ isOpen, onClose, isAdmin }) {
                             </Link>
                         </>
                     )}
+
+                    <Link to="/events/history" className={`sidebar__action${isHistoryActive ? ' sidebar__action--active' : ''}`} onClick={onClose}>
+                        <History size={18} strokeWidth={2} />
+                        <span>История мероприятий</span>
+                    </Link>
                 </div>
             </aside>
         </>

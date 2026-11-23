@@ -1,6 +1,3 @@
-// RegisterButton.scss
-// Подгоняй цвета/отступы под дизайн проекта — переменные замени на свои.
-
 .register-button {
     display: flex;
     flex-direction: column;
@@ -48,7 +45,6 @@
             cursor: not-allowed;
         }
 
-        // Состояние "Отменить регистрацию" — контурная кнопка
         &--cancel {
             background: transparent;
             color: #dc2626;

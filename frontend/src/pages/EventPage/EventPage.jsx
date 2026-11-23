@@ -40,6 +40,72 @@ function getLocationLabel(location) {
     return parts.join(', ');
 }
 
+/**
+ * Бэкенд отдаёт:
+ *   programs: [{ programId, name, description, schedule: [{ scheduleItemId, itemDate, startTime, endTime, name, locationPlace }] }]
+ *   commonScheduleByDate: { "YYYY-MM-DD": [{ commonItemId, itemDate, startTime, endTime, name, locationPlace }] }
+ *
+ * Собираем плоский список слотов: один scheduleItemId → один слот со списком программ.
+ */
+function buildSlots(event) {
+    if (!event) return [];
+
+    const byKey = new Map();
+
+    (event.programs || []).forEach((program) => {
+        (program.schedule || []).forEach((slot) => {
+            const key = slot.scheduleItemId != null ? `s:${slot.scheduleItemId}` : `k:${slot.itemDate}|${slot.startTime}|${slot.endTime}|${slot.name}`;
+
+            let entry = byKey.get(key);
+            if (!entry) {
+                entry = {
+                    key,
+                    itemDate: slot.itemDate,
+                    startTime: slot.startTime,
+                    endTime: slot.endTime,
+                    name: slot.name,
+                    locationPlace: slot.locationPlace,
+                    programs: [],
+                };
+                byKey.set(key, entry);
+            }
+
+            entry.programs.push({
+                programId: program.programId,
+                name: program.name,
+                description: program.description,
+            });
+        });
+    });
+
+    Object.values(event.commonScheduleByDate || {}).forEach((items) => {
+        (items || []).forEach((item) => {
+            const key = `c:${item.commonItemId}`;
+            if (!byKey.has(key)) {
+                byKey.set(key, {
+                    key,
+                    itemDate: item.itemDate,
+                    startTime: item.startTime,
+                    endTime: item.endTime,
+                    name: item.name,
+                    locationPlace: item.locationPlace,
+                    programs: [],
+                });
+            }
+        });
+    });
+
+    return [...byKey.values()].sort((a, b) => {
+        const da = a.itemDate ?? '';
+        const db = b.itemDate ?? '';
+        if (da !== db) return da < db ? -1 : 1;
+        const ta = a.startTime ?? '';
+        const tb = b.startTime ?? '';
+        if (ta === tb) return 0;
+        return ta < tb ? -1 : 1;
+    });
+}
+
 export default function EventPage() {
     const { id } = useParams();
     const [event, setEvent] = useState(null);
@@ -67,19 +133,20 @@ export default function EventPage() {
         };
     }, [id]);
 
+    const slots = useMemo(() => buildSlots(event), [event]);
+
     const dates = useMemo(() => {
-        if (!event?.schedule) return [];
         const set = new Set();
-        event.schedule.forEach((item) => {
-            if (item.itemDate) set.add(item.itemDate);
+        slots.forEach((slot) => {
+            if (slot.itemDate) set.add(slot.itemDate);
         });
         return [...set].sort();
-    }, [event]);
+    }, [slots]);
 
+    // Без setState в рендере: activeDate — состояние, selectedDate — вычисление.
     const selectedDate = dates.includes(activeDate) ? activeDate : dates[0] || '';
-    if (selectedDate !== activeDate) setActiveDate(selectedDate);
 
-    const visibleSchedule = (event?.schedule || []).filter((item) => item.itemDate === selectedDate);
+    const visibleSchedule = slots.filter((slot) => slot.itemDate === selectedDate);
 
     if (loading) {
         return (
@@ -111,6 +178,7 @@ export default function EventPage() {
                 {event.description && <p>{event.description}</p>}
                 <RegisterButton key={event.eventId} eventId={event.eventId} />
             </header>
+
             {dates.length > 0 && (
                 <section className="public-event__section">
                     {dates.length > 1 && (
@@ -135,8 +203,7 @@ export default function EventPage() {
                         {visibleSchedule.length > 0 ? (
                             <div className="public-event__schedule-list">
                                 {visibleSchedule.map((slot) => (
-                                    <article className="public-event__schedule-item" key={slot.scheduleItemId}>
-                                        {/* Шапка слота: время и название пункта */}
+                                    <article className="public-event__schedule-item" key={slot.key}>
                                         <header className="public-event__slot-header">
                                             <div className="public-event__schedule-time">
                                                 <Clock size={16} />
@@ -145,19 +212,19 @@ export default function EventPage() {
                                             {slot.name && <h3 className="public-event__slot-name">{slot.name}</h3>}
                                         </header>
 
-                                        {/* Сетка карточек программ */}
-                                        {slot.programs?.length > 0 && (
+                                        {slot.locationPlace?.location && (
+                                            <div className="public-event__location">
+                                                <MapPin size={14} />
+                                                {getLocationLabel(slot.locationPlace.location)}
+                                            </div>
+                                        )}
+
+                                        {slot.programs.length > 0 && (
                                             <div className="public-event__programs-grid">
                                                 {slot.programs.map((program) => (
-                                                    <div key={program.programId} className="public-event__program-card">
+                                                    <div key={`${slot.key}:${program.programId}`} className="public-event__program-card">
                                                         <h4>{program.name}</h4>
                                                         {program.description && <p>{program.description}</p>}
-                                                        {program.locationPlace?.location && (
-                                                            <div className="public-event__location">
-                                                                <MapPin size={14} />
-                                                                {getLocationLabel(program.locationPlace.location)}
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 ))}
                                             </div>

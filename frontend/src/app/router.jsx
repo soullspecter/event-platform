@@ -7,6 +7,7 @@ import EventPage from '../pages/EventPage/EventPage.jsx';
 import CreateEventPage from '../pages/admin/CreateEventPage/Layout/Layout.jsx';
 import DraftsPage from '../pages/admin/CreateEventPage/Drafts/DraftsPage.jsx';
 import { authApi } from '../shared/api/auth.api.js';
+import EventHistoryPage from '../pages/EventHistoryPage/EventHistoryPage.jsx';
 
 function AdminRoute({ children }) {
     const user = authApi.getUser();
@@ -62,6 +63,9 @@ export default function AppRouter() {
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />
+
+                <Route path="/events/history" element={<EventHistoryPage />} />
+                <Route path="/events/:id" element={<EventPage />} />
             </Routes>
         </BrowserRouter>
     );
