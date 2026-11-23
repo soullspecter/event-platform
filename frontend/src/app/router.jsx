@@ -7,6 +7,8 @@ import EventPage from '../pages/EventPage/EventPage.jsx';
 import CreateEventPage from '../pages/admin/CreateEventPage/Layout/Layout.jsx';
 import DraftsPage from '../pages/admin/CreateEventPage/Drafts/DraftsPage.jsx';
 import { authApi } from '../shared/api/auth.api.js';
+import QuestionnairesAdminPage from "../pages/admin/QuestionnairesAdminPage.jsx";
+import QuestionnairesPage from "../pages/QuestionnairesPage.jsx";
 
 function AdminRoute({ children }) {
     const user = authApi.getUser();
@@ -62,7 +64,21 @@ export default function AppRouter() {
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />
+                <Route
+  path="/events/:eventId/questionnaires"
+  element={<QuestionnairesPage />}
+/>
+
+<Route
+  path="/events/:eventId/questionnaires/manage"
+  element={
+    <AdminRoute>
+      <QuestionnairesAdminPage />
+    </AdminRoute>
+  }
+/>
             </Routes>
         </BrowserRouter>
     );
+
 }
