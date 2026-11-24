@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ClipboardList, CalendarDays, CircleHelp, ListChecks, Check, X, Pencil } from 'lucide-react';
+import { Plus, Trash2, ClipboardList, CalendarDays, CircleHelp, ListChecks, X } from 'lucide-react';
 
 import { createClientId } from '../../Utils/eventForm.utils';
 
@@ -68,7 +68,6 @@ function normalizeQuestionnaire(questionnaire) {
 
                 return {
                     clientId: option.clientId || createClientId('option'),
-
                     optionId: option.optionId ?? null,
                     text: option.text ?? option.optionText ?? '',
                     sortOrder: option.sortOrder,
@@ -84,39 +83,63 @@ function getQuestionnaireKey(questionnaire) {
 
 export default function QuestionnairesAdminPage({ questionnaires = [], onQuestionnairesChange }) {
     const [selectedId, setSelectedId] = useState(null);
-    const [error, setError] = useState('');
 
-    const [form, setForm] = useState(createEmptyQuestionnaire);
+    const selectedQuestionnaire = questionnaires.find((questionnaire) => getQuestionnaireKey(questionnaire) === selectedId);
 
-    const isEditing = Boolean(selectedId);
+    // Обновление выбранной анкеты.
+    // Передаём родителю готовый массив, а не callback.
+    function updateSelectedQuestionnaire(changes) {
+        if (!selectedId) return;
 
-    function updateForm(changes) {
-        setForm((current) => ({
-            ...current,
-            ...changes,
-        }));
+        const updatedQuestionnaires = questionnaires.map((questionnaire) =>
+            getQuestionnaireKey(questionnaire) === selectedId
+                ? {
+                      ...questionnaire,
+                      ...changes,
+                  }
+                : questionnaire,
+        );
+
+        onQuestionnairesChange(updatedQuestionnaires);
     }
 
+    // Обновление вопроса.
     function updateQuestion(questionId, changes) {
-        updateForm({
-            questions: form.questions.map((question) => (question.clientId === questionId ? { ...question, ...changes } : question)),
+        if (!selectedQuestionnaire) return;
+
+        updateSelectedQuestionnaire({
+            questions: selectedQuestionnaire.questions.map((question) =>
+                question.clientId === questionId
+                    ? {
+                          ...question,
+                          ...changes,
+                      }
+                    : question,
+            ),
         });
     }
 
+    // Добавление вопроса.
     function addQuestion() {
-        updateForm({
-            questions: [...form.questions, createEmptyQuestion()],
+        if (!selectedQuestionnaire) return;
+
+        updateSelectedQuestionnaire({
+            questions: [...selectedQuestionnaire.questions, createEmptyQuestion()],
         });
     }
 
+    // Удаление вопроса.
     function removeQuestion(questionId) {
-        updateForm({
-            questions: form.questions.filter((question) => question.clientId !== questionId),
+        if (!selectedQuestionnaire) return;
+
+        updateSelectedQuestionnaire({
+            questions: selectedQuestionnaire.questions.filter((question) => question.clientId !== questionId),
         });
     }
 
+    // Изменение типа вопроса.
     function changeQuestionType(questionId, type) {
-        const question = form.questions.find((item) => item.clientId === questionId);
+        const question = selectedQuestionnaire?.questions.find((item) => item.clientId === questionId);
 
         if (!question) return;
 
@@ -136,8 +159,9 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
+    // Добавление варианта ответа.
     function addOption(questionId) {
-        const question = form.questions.find((item) => item.clientId === questionId);
+        const question = selectedQuestionnaire?.questions.find((item) => item.clientId === questionId);
 
         if (!question) return;
 
@@ -152,18 +176,27 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
+    // Изменение варианта ответа.
     function updateOption(questionId, optionId, text) {
-        const question = form.questions.find((item) => item.clientId === questionId);
+        const question = selectedQuestionnaire?.questions.find((item) => item.clientId === questionId);
 
         if (!question) return;
 
         updateQuestion(questionId, {
-            options: question.options.map((option) => (option.clientId === optionId ? { ...option, text } : option)),
+            options: question.options.map((option) =>
+                option.clientId === optionId
+                    ? {
+                          ...option,
+                          text,
+                      }
+                    : option,
+            ),
         });
     }
 
+    // Удаление варианта ответа.
     function removeOption(questionId, optionId) {
-        const question = form.questions.find((item) => item.clientId === questionId);
+        const question = selectedQuestionnaire?.questions.find((item) => item.clientId === questionId);
 
         if (!question) return;
 
@@ -172,134 +205,57 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
-    // Открыть форму создания новой анкеты.
+    // Создание анкеты.
     function addQuestionnaire() {
-        setSelectedId(null);
-        setForm(createEmptyQuestionnaire());
-        setError('');
-    }
+        const questionnaire = createEmptyQuestionnaire();
 
-    // Открыть существующую анкету.
-    function selectQuestionnaire(questionnaire) {
+        onQuestionnairesChange([...questionnaires, questionnaire]);
+
         setSelectedId(getQuestionnaireKey(questionnaire));
-        setForm(normalizeQuestionnaire(questionnaire));
-        setError('');
     }
 
-    function removeQuestionnaire(questionnaire) {
+    // Выбор анкеты из списка.
+    function selectQuestionnaire(questionnaire) {
         const key = getQuestionnaireKey(questionnaire);
 
-        onQuestionnairesChange(questionnaires.filter((item) => getQuestionnaireKey(item) !== key));
+        setSelectedId(key);
 
-        if (selectedId === key) {
-            addQuestionnaire();
+        // Нормализуем данные только при первом выборе,
+        // если у старой анкеты ещё нет clientId.
+        if (!questionnaire.clientId) {
+            const normalized = normalizeQuestionnaire(questionnaire);
+
+            onQuestionnairesChange(questionnaires.map((item) => (getQuestionnaireKey(item) === key ? normalized : item)));
+
+            setSelectedId(getQuestionnaireKey(normalized));
         }
     }
 
-    function validateForm() {
-        if (!form.title.trim()) {
-            return 'Укажи название анкеты.';
-        }
+    // Удаление выбранной анкеты.
+    function removeSelectedQuestionnaire() {
+        if (!selectedQuestionnaire) return;
 
-        if (form.availableFrom && form.availableUntil && new Date(form.availableUntil) < new Date(form.availableFrom)) {
-            return 'Дата окончания доступности не может быть раньше даты начала.';
-        }
+        const confirmed = window.confirm('Удалить выбранную анкету? Изменение сохранится после нажатия «Сохранить черновик».');
 
-        if (!form.questions.length) {
-            return 'Добавь хотя бы один вопрос.';
-        }
+        if (!confirmed) return;
 
-        for (const [index, question] of form.questions.entries()) {
-            if (!question.text.trim()) {
-                return `Заполни текст вопроса №${index + 1}.`;
-            }
+        const key = getQuestionnaireKey(selectedQuestionnaire);
 
-            if (question.type !== 'text') {
-                const options = question.options.filter((option) => option.text.trim());
+        onQuestionnairesChange(questionnaires.filter((questionnaire) => getQuestionnaireKey(questionnaire) !== key));
 
-                if (options.length < 2) {
-                    return `В вопросе №${index + 1} должно быть минимум два варианта ответа.`;
-                }
-            }
-        }
-
-        return '';
-    }
-
-    function handleSubmit(event) {
-        event.preventDefault();
-
-        const validationError = validateForm();
-
-        if (validationError) {
-            setError(validationError);
-            return;
-        }
-
-        const updatedQuestionnaire = {
-            ...form,
-
-            title: form.title.trim(),
-            availableFrom: form.availableFrom || null,
-            availableUntil: form.availableUntil || null,
-
-            questions: form.questions.map((question, index) => ({
-                ...question,
-                text: question.text.trim(),
-                sortOrder: index,
-
-                options:
-                    question.type === 'text'
-                        ? []
-                        : question.options
-                              .filter((option) => option.text.trim())
-                              .map((option, optionIndex) => ({
-                                  ...option,
-                                  text: option.text.trim(),
-                                  sortOrder: optionIndex,
-                              })),
-            })),
-        };
-
-        // Убираем clientId из вложенных объектов не нужно:
-        // он пригодится фронтенду для стабильной идентификации.
-        // buildQuestionnairesPayload должен исключить его из API payload.
-
-        if (isEditing) {
-            onQuestionnairesChange(
-                questionnaires.map((questionnaire) =>
-                    getQuestionnaireKey(questionnaire) === selectedId
-                        ? {
-                              ...questionnaire,
-                              ...updatedQuestionnaire,
-                          }
-                        : questionnaire,
-                ),
-            );
-        } else {
-            onQuestionnairesChange([
-                ...questionnaires,
-                {
-                    ...updatedQuestionnaire,
-                    isPublished: false,
-                },
-            ]);
-        }
-
-        // После добавления или изменения открываем новую пустую форму.
         setSelectedId(null);
-        setForm(createEmptyQuestionnaire());
-        setError('');
     }
 
     return (
         <div className="questionnaires-editor-split">
             {/* Левая панель */}
             <aside className="questionnaires-editor-split__sidebar">
-                <button type="button" className="questionnaires-editor-split__add" onClick={addQuestionnaire}>
-                    <Plus size={17} />
-                    Создать анкету
-                </button>
+                <div className="questionnaires-editor-split__actions">
+                    <button type="button" onClick={addQuestionnaire}>
+                        <Plus size={16} />
+                        Создать анкету
+                    </button>
+                </div>
 
                 <div className="questionnaires-editor-split__list-heading">
                     Созданные анкеты
@@ -325,16 +281,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
 
                                         <span className="questionnaires-editor-split__status">{questionnaire.isPublished ? 'Опубликована' : 'Черновик'}</span>
                                     </button>
-
-                                    <div className="questionnaires-editor-split__item-actions">
-                                        <button type="button" title="Редактировать" onClick={() => selectQuestionnaire(questionnaire)}>
-                                            <Pencil size={15} />
-                                        </button>
-
-                                        <button type="button" title="Удалить" className="is-danger" onClick={() => removeQuestionnaire(questionnaire)}>
-                                            <Trash2 size={15} />
-                                        </button>
-                                    </div>
                                 </li>
                             );
                         })}
@@ -344,188 +290,188 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
 
             {/* Правая панель */}
             <section className="questionnaires-editor-split__editor">
-                <form className="questionnaires-edit-form" onSubmit={handleSubmit}>
-                    <div className="questionnaires-edit-form__header">
-                        <div>
-                            <h2>{isEditing ? 'Редактирование анкеты' : 'Новая анкета'}</h2>
+                {!selectedQuestionnaire ? (
+                    <div className="questionnaires-editor-split__empty">Выберите анкету слева или создайте новую.</div>
+                ) : (
+                    <div className="questionnaires-edit-form">
+                        {/* Шапка анкеты */}
+                        <div className="questionnaires-edit-form__header">
+                            <div>
+                                <h2>{selectedQuestionnaire.questionnaireId ? 'Редактирование анкеты' : 'Новая анкета'}</h2>
 
-                            <p>Настройте название, сроки проведения и вопросы</p>
-                        </div>
+                                <p>Настройте название, сроки проведения и вопросы</p>
+                            </div>
 
-                        {isEditing && (
-                            <button type="button" className="questionnaires-edit-form__cancel" onClick={addQuestionnaire}>
-                                <X size={16} />
-                                Отмена
+                            <button type="button" className="text-danger" onClick={removeSelectedQuestionnaire}>
+                                <Trash2 size={16} />
+                                Удалить анкету
                             </button>
-                        )}
-                    </div>
-
-                    {error && (
-                        <div className="questionnaires-edit-form__error">
-                            <X size={17} />
-                            {error}
                         </div>
-                    )}
 
-                    <div className="questionnaires-edit-form__fields">
-                        <label className="field">
-                            <span>Название анкеты</span>
-                            <input
-                                maxLength={255}
-                                value={form.title}
-                                onChange={(event) =>
-                                    updateForm({
-                                        title: event.target.value,
-                                    })
-                                }
-                                placeholder="Например, Регистрация участников"
-                            />
-                        </label>
-
-                        <div className="field-row">
+                        {/* Основные поля */}
+                        <div className="questionnaires-edit-form__fields">
                             <label className="field">
-                                <span>
-                                    <CalendarDays size={15} />
-                                    Доступна с
-                                </span>
+                                <span>Название анкеты</span>
 
                                 <input
-                                    type="datetime-local"
-                                    value={form.availableFrom}
+                                    maxLength={255}
+                                    value={selectedQuestionnaire.title ?? ''}
                                     onChange={(event) =>
-                                        updateForm({
-                                            availableFrom: event.target.value,
+                                        updateSelectedQuestionnaire({
+                                            title: event.target.value,
                                         })
                                     }
+                                    placeholder="Например, Регистрация участников"
                                 />
                             </label>
 
-                            <label className="field">
-                                <span>
-                                    <CalendarDays size={15} />
-                                    Доступна до
-                                </span>
-
-                                <input
-                                    type="datetime-local"
-                                    value={form.availableUntil}
-                                    onChange={(event) =>
-                                        updateForm({
-                                            availableUntil: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                        </div>
-                    </div>
-
-                    <div className="questionnaires-edit-form__section-heading">
-                        <div>
-                            <h3>Вопросы анкеты</h3>
-                            <p>Добавьте вопросы для участников</p>
-                        </div>
-
-                        <span>{form.questions.length}</span>
-                    </div>
-
-                    <div className="questionnaires-edit-form__questions">
-                        {form.questions.map((question, index) => (
-                            <article className="questionnaires-edit-form__question" key={question.clientId}>
-                                <div className="questionnaires-edit-form__question-header">
-                                    <strong>
-                                        <CircleHelp size={17} />
-                                        Вопрос {index + 1}
-                                    </strong>
-
-                                    <button type="button" disabled={form.questions.length === 1} onClick={() => removeQuestion(question.clientId)} title="Удалить вопрос">
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-
+                            <div className="field-row">
                                 <label className="field">
-                                    <span>Текст вопроса</span>
+                                    <span>
+                                        <CalendarDays size={15} />
+                                        Доступна с
+                                    </span>
+
                                     <input
-                                        maxLength={1000}
-                                        value={question.text}
+                                        type="datetime-local"
+                                        value={selectedQuestionnaire.availableFrom ?? ''}
                                         onChange={(event) =>
-                                            updateQuestion(question.clientId, {
-                                                text: event.target.value,
+                                            updateSelectedQuestionnaire({
+                                                availableFrom: event.target.value,
                                             })
                                         }
-                                        placeholder="Введите формулировку вопроса"
                                     />
                                 </label>
 
-                                <div className="questionnaires-edit-form__settings">
-                                    <label className="field">
-                                        <span>Тип ответа</span>
-                                        <select value={question.type} onChange={(event) => changeQuestionType(question.clientId, event.target.value)}>
-                                            <option value="text">Свободный текст</option>
-                                            <option value="single_choice">Один вариант ответа</option>
-                                            <option value="multiple_choice">Несколько вариантов</option>
-                                        </select>
-                                    </label>
+                                <label className="field">
+                                    <span>
+                                        <CalendarDays size={15} />
+                                        Доступна до
+                                    </span>
 
-                                    <label className="questionnaires-edit-form__required">
-                                        <input
-                                            type="checkbox"
-                                            checked={question.isRequired}
-                                            onChange={(event) =>
-                                                updateQuestion(question.clientId, {
-                                                    isRequired: event.target.checked,
-                                                })
-                                            }
-                                        />
-                                        Обязательный вопрос
-                                    </label>
-                                </div>
+                                    <input
+                                        type="datetime-local"
+                                        value={selectedQuestionnaire.availableUntil ?? ''}
+                                        onChange={(event) =>
+                                            updateSelectedQuestionnaire({
+                                                availableUntil: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                            </div>
+                        </div>
 
-                                {question.type !== 'text' && (
-                                    <div className="questionnaires-edit-form__options">
-                                        <div className="questionnaires-edit-form__options-heading">
-                                            <ListChecks size={17} />
-                                            Варианты ответа
-                                        </div>
+                        {/* Вопросы */}
+                        <div className="questionnaires-edit-form__section-heading">
+                            <div>
+                                <h3>Вопросы анкеты</h3>
+                                <p>Добавьте вопросы для участников</p>
+                            </div>
 
-                                        {question.options.map((option, optionIndex) => (
-                                            <div className="questionnaires-edit-form__option" key={option.clientId}>
-                                                <span>{optionIndex + 1}</span>
+                            <span>{selectedQuestionnaire.questions.length}</span>
+                        </div>
 
-                                                <input
-                                                    maxLength={500}
-                                                    value={option.text}
-                                                    onChange={(event) => updateOption(question.clientId, option.clientId, event.target.value)}
-                                                    placeholder={`Вариант ответа ${optionIndex + 1}`}
-                                                />
+                        <div className="questionnaires-edit-form__questions">
+                            {selectedQuestionnaire.questions.map((question, index) => (
+                                <article className="questionnaires-edit-form__question" key={question.clientId}>
+                                    <div className="questionnaires-edit-form__question-header">
+                                        <strong>
+                                            <CircleHelp size={17} />
+                                            Вопрос {index + 1}
+                                        </strong>
 
-                                                <button type="button" onClick={() => removeOption(question.clientId, option.clientId)} title="Удалить вариант">
-                                                    <X size={16} />
-                                                </button>
-                                            </div>
-                                        ))}
-
-                                        <button type="button" className="questionnaires-edit-form__add-option" onClick={() => addOption(question.clientId)}>
-                                            <Plus size={16} />
-                                            Добавить вариант ответа
+                                        <button type="button" disabled={selectedQuestionnaire.questions.length === 1} onClick={() => removeQuestion(question.clientId)} title="Удалить вопрос">
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
-                                )}
-                            </article>
-                        ))}
-                    </div>
 
-                    <div className="questionnaires-edit-form__actions">
-                        <button type="button" className="questionnaires-edit-form__secondary" onClick={addQuestion}>
-                            <Plus size={17} />
-                            Добавить вопрос
-                        </button>
+                                    <label className="field">
+                                        <span>Текст вопроса</span>
 
-                        <button type="submit" className="questionnaires-edit-form__primary">
-                            <Check size={17} />
-                            {isEditing ? 'Сохранить изменения' : 'Добавить анкету'}
-                        </button>
+                                        <input
+                                            maxLength={1000}
+                                            value={question.text ?? ''}
+                                            onChange={(event) =>
+                                                updateQuestion(question.clientId, {
+                                                    text: event.target.value,
+                                                })
+                                            }
+                                            placeholder="Введите формулировку вопроса"
+                                        />
+                                    </label>
+
+                                    <div className="questionnaires-edit-form__settings">
+                                        <label className="field">
+                                            <span>Тип ответа</span>
+
+                                            <select value={question.type} onChange={(event) => changeQuestionType(question.clientId, event.target.value)}>
+                                                <option value="text">Свободный текст</option>
+
+                                                <option value="single_choice">Один вариант ответа</option>
+
+                                                <option value="multiple_choice">Несколько вариантов</option>
+                                            </select>
+                                        </label>
+
+                                        <label className="questionnaires-edit-form__required">
+                                            <input
+                                                type="checkbox"
+                                                checked={question.isRequired}
+                                                onChange={(event) =>
+                                                    updateQuestion(question.clientId, {
+                                                        isRequired: event.target.checked,
+                                                    })
+                                                }
+                                            />
+                                            Обязательный вопрос
+                                        </label>
+                                    </div>
+
+                                    {/* Варианты ответа */}
+                                    {question.type !== 'text' && (
+                                        <div className="questionnaires-edit-form__options">
+                                            <div className="questionnaires-edit-form__options-heading">
+                                                <ListChecks size={17} />
+                                                Варианты ответа
+                                            </div>
+
+                                            {question.options.map((option, optionIndex) => (
+                                                <div className="questionnaires-edit-form__option" key={option.clientId}>
+                                                    <span>{optionIndex + 1}</span>
+
+                                                    <input
+                                                        maxLength={500}
+                                                        value={option.text ?? ''}
+                                                        onChange={(event) => updateOption(question.clientId, option.clientId, event.target.value)}
+                                                        placeholder={`Вариант ответа ${optionIndex + 1}`}
+                                                    />
+
+                                                    <button type="button" onClick={() => removeOption(question.clientId, option.clientId)} title="Удалить вариант">
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+
+                                            <button type="button" className="questionnaires-edit-form__add-option" onClick={() => addOption(question.clientId)}>
+                                                <Plus size={16} />
+                                                Добавить вариант ответа
+                                            </button>
+                                        </div>
+                                    )}
+                                </article>
+                            ))}
+                        </div>
+
+                        {/* Добавление вопроса */}
+                        <div className="questionnaires-edit-form__actions">
+                            <button type="button" className="questionnaires-edit-form__secondary" onClick={addQuestion}>
+                                <Plus size={17} />
+                                Добавить вопрос
+                            </button>
+                        </div>
                     </div>
-                </form>
+                )}
             </section>
         </div>
     );

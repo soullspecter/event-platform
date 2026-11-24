@@ -71,7 +71,7 @@ export class EventsService {
         });
     }
 
-    // Обновление черновика мероприятия
+    // Обновление мероприятия
     async updateEvent(eventId: number, dto: SaveEventDto) {
         return this.dataSource.transaction('READ COMMITTED', async (manager) => {
             const repo = manager.getRepository(Event);
@@ -90,23 +90,49 @@ export class EventsService {
 
             this.validateEventDates(nextStart, nextEnd);
 
+            // Отслеживаем изменения основных полей мероприятия
+            let eventChanged = false;
+
             if (dto.title !== undefined) {
-                event.title = dto.title ?? null;
+                const value = dto.title ?? null;
+
+                if (event.title !== value) {
+                    event.title = value;
+                    eventChanged = true;
+                }
             }
 
             if (dto.description !== undefined) {
-                event.description = dto.description ?? null;
+                const value = dto.description ?? null;
+
+                if (event.description !== value) {
+                    event.description = value;
+                    eventChanged = true;
+                }
             }
 
             if (dto.startDate !== undefined) {
-                event.startDate = dto.startDate ?? null;
+                const value = dto.startDate ?? null;
+
+                if (event.startDate !== value) {
+                    event.startDate = value;
+                    eventChanged = true;
+                }
             }
 
             if (dto.endDate !== undefined) {
-                event.endDate = dto.endDate ?? null;
+                const value = dto.endDate ?? null;
+
+                if (event.endDate !== value) {
+                    event.endDate = value;
+                    eventChanged = true;
+                }
             }
 
-            await repo.save(event);
+            // Сохраняем мероприятие только при наличии изменений
+            if (eventChanged) {
+                await repo.save(event);
+            }
 
             // Обновление программ
             if (dto.programs !== undefined) {
@@ -140,15 +166,14 @@ export class EventsService {
                 throw new NotFoundException('Мероприятие не найдено');
             }
 
-            if (event.status === 'published') {
-                throw new BadRequestException('Мероприятие уже опубликовано');
-            }
-
+            // Проверяем данные даже при повторной публикации
             await this.validateForPublication(manager, event);
 
-            event.status = 'published';
-
-            await repo.save(event);
+            // Не сохраняем повторно уже опубликованное мероприятие
+            if (event.status !== 'published') {
+                event.status = 'published';
+                await repo.save(event);
+            }
 
             return this.buildEventDetails(manager, eventId);
         });

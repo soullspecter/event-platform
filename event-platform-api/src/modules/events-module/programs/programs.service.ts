@@ -95,23 +95,53 @@ export class ProgramsService {
 
         for (const dto of dtos) {
             let program: Program;
+            let isNew = false;
+            let changed = false;
 
             if (dto.programId != null) {
                 const found = existingById.get(dto.programId);
-                if (!found) throw new BadRequestException(`Программа ${dto.programId} не найдена у мероприятия`);
-                if (keptIds.has(dto.programId)) throw new BadRequestException(`Программа ${dto.programId} передана дважды`);
+
+                if (!found) {
+                    throw new BadRequestException(`Программа ${dto.programId} не найдена у мероприятия`);
+                }
+
+                if (keptIds.has(dto.programId)) {
+                    throw new BadRequestException(`Программа ${dto.programId} передана дважды`);
+                }
+
                 program = found;
-                if (dto.name !== undefined) program.name = this.cleanText(dto.name);
-                if (dto.description !== undefined) program.description = this.cleanText(dto.description);
+
+                if (dto.name !== undefined) {
+                    const value = this.cleanText(dto.name);
+
+                    if (program.name !== value) {
+                        program.name = value;
+                        changed = true;
+                    }
+                }
+
+                if (dto.description !== undefined) {
+                    const value = this.cleanText(dto.description);
+
+                    if (program.description !== value) {
+                        program.description = value;
+                        changed = true;
+                    }
+                }
             } else {
                 program = repo.create({
                     eventId: event.eventId,
                     name: this.cleanText(dto.name),
                     description: this.cleanText(dto.description),
                 });
+
+                isNew = true;
             }
 
-            program = await repo.save(program);
+            if (isNew || changed) {
+                program = await repo.save(program);
+            }
+
             keptIds.add(program.programId);
 
             if (dto.schedule !== undefined) {
@@ -132,20 +162,52 @@ export class ProgramsService {
     }
 
     private async replaceSchedule(manager: EntityManager, event: Event, program: Program, dtos: SaveProgramDto['schedule']): Promise<void> {
-        if (!dtos) return;
+        if (dtos === undefined) return;
 
         const psRepo = manager.getRepository(ProgramSchedule);
-        const oldLinks = await psRepo.find({ where: { programId: program.programId } });
-        const oldSlotIds = oldLinks.map((l) => l.scheduleItemId);
 
-        await psRepo.delete({ programId: program.programId });
+        const oldLinks = await psRepo.find({
+            where: { programId: program.programId },
+            relations: { scheduleItem: true },
+        });
 
-        for (const slotDto of dtos) {
+        const oldBySlotId = new Map(oldLinks.map((link) => [link.scheduleItemId, link]));
+
+        const desiredSlotIds = new Set<number>();
+
+        for (const slotDto of dtos ?? []) {
             const slot = await this.scheduleService.getOrCreateSlot(manager, event, slotDto);
-            await psRepo.save(psRepo.create({ programId: program.programId, scheduleItemId: slot.scheduleItemId }));
+
+            if (desiredSlotIds.has(slot.scheduleItemId)) {
+                continue;
+            }
+
+            desiredSlotIds.add(slot.scheduleItemId);
+
+            if (oldBySlotId.has(slot.scheduleItemId)) {
+                continue;
+            }
+
+            await psRepo.save(
+                psRepo.create({
+                    programId: program.programId,
+                    scheduleItemId: slot.scheduleItemId,
+                }),
+            );
         }
 
-        await this.scheduleService.removeOrphans(manager, oldSlotIds);
+        const removedLinks = oldLinks.filter((link) => !desiredSlotIds.has(link.scheduleItemId));
+
+        if (removedLinks.length > 0) {
+            const removedSlotIds = removedLinks.map((link) => link.scheduleItemId);
+
+            await psRepo.delete({
+                programId: program.programId,
+                scheduleItemId: In(removedSlotIds),
+            });
+
+            await this.scheduleService.removeOrphans(manager, removedSlotIds);
+        }
     }
 
     private async findOneInManager(manager: EntityManager, programId: number) {

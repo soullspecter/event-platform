@@ -92,7 +92,7 @@ export class QuestionnairesService {
 
         const incomingQuestionnaireIds = new Set<number>();
 
-        // Проверяем входящие данные до начала изменений.
+        // Проверяем входящие данные до изменений.
         for (const item of items) {
             if (!item.title?.trim()) {
                 throw new BadRequestException('Укажите название анкеты');
@@ -158,23 +158,53 @@ export class QuestionnairesService {
         for (const item of items) {
             let questionnaire: Questionnaire;
 
+            const title = item.title.trim();
+            const availableFrom = item.availableFrom ? new Date(item.availableFrom) : null;
+            const availableUntil = item.availableUntil ? new Date(item.availableUntil) : null;
+            const isPublished = item.isPublished ?? false;
+
             if (item.questionnaireId !== undefined) {
                 questionnaire = existingQuestionnaireMap.get(item.questionnaireId)!;
 
-                questionnaire.title = item.title.trim();
-                questionnaire.availableFrom = item.availableFrom ? new Date(item.availableFrom) : null;
-                questionnaire.availableUntil = item.availableUntil ? new Date(item.availableUntil) : null;
-                questionnaire.isPublished = item.isPublished ?? false;
+                let changed = false;
 
-                await questionnaireRepo.save(questionnaire);
+                if (questionnaire.title !== title) {
+                    questionnaire.title = title;
+                    changed = true;
+                }
+
+                const oldAvailableFrom = questionnaire.availableFrom?.getTime() ?? null;
+                const newAvailableFrom = availableFrom?.getTime() ?? null;
+
+                if (oldAvailableFrom !== newAvailableFrom) {
+                    questionnaire.availableFrom = availableFrom;
+                    changed = true;
+                }
+
+                const oldAvailableUntil = questionnaire.availableUntil?.getTime() ?? null;
+                const newAvailableUntil = availableUntil?.getTime() ?? null;
+
+                if (oldAvailableUntil !== newAvailableUntil) {
+                    questionnaire.availableUntil = availableUntil;
+                    changed = true;
+                }
+
+                if (questionnaire.isPublished !== isPublished) {
+                    questionnaire.isPublished = isPublished;
+                    changed = true;
+                }
+
+                if (changed) {
+                    await questionnaireRepo.save(questionnaire);
+                }
             } else {
                 questionnaire = await questionnaireRepo.save(
                     questionnaireRepo.create({
                         eventId,
-                        title: item.title.trim(),
-                        availableFrom: item.availableFrom ? new Date(item.availableFrom) : null,
-                        availableUntil: item.availableUntil ? new Date(item.availableUntil) : null,
-                        isPublished: item.isPublished ?? false,
+                        title,
+                        availableFrom,
+                        availableUntil,
+                        isPublished,
                     }),
                 );
             }
@@ -208,7 +238,7 @@ export class QuestionnairesService {
                 }
             }
 
-            // Удаляем вопросы, которые убрали из редактора.
+            // Удаляем вопросы, которых больше нет в редакторе.
             for (const oldQuestion of oldQuestions) {
                 if (incomingQuestionIds.has(oldQuestion.questionId)) {
                     continue;
@@ -231,6 +261,11 @@ export class QuestionnairesService {
             for (const [questionIndex, questionData] of (item.questions ?? []).entries()) {
                 let question: Question;
 
+                const text = questionData.text.trim();
+                const type = questionData.type;
+                const isRequired = questionData.isRequired ?? false;
+                const sortOrder = questionData.sortOrder ?? questionIndex;
+
                 if (questionData.questionId !== undefined) {
                     question = oldQuestionMap.get(questionData.questionId)!;
 
@@ -241,29 +276,48 @@ export class QuestionnairesService {
                     });
 
                     // Нельзя менять смысл вопроса, если на него уже ответили.
-                    if (answersCount > 0 && (question.text !== questionData.text || question.type !== questionData.type || question.isRequired !== (questionData.isRequired ?? false))) {
+                    if (answersCount > 0 && (question.text !== text || question.type !== type || question.isRequired !== isRequired)) {
                         throw new BadRequestException(`Нельзя изменить вопрос "${question.text}": на него уже есть ответы`);
                     }
 
-                    question.text = questionData.text.trim();
-                    question.type = questionData.type;
-                    question.isRequired = questionData.isRequired ?? false;
-                    question.sortOrder = questionData.sortOrder ?? questionIndex;
+                    let changed = false;
 
-                    await questionRepo.save(question);
+                    if (question.text !== text) {
+                        question.text = text;
+                        changed = true;
+                    }
+
+                    if (question.type !== type) {
+                        question.type = type;
+                        changed = true;
+                    }
+
+                    if (question.isRequired !== isRequired) {
+                        question.isRequired = isRequired;
+                        changed = true;
+                    }
+
+                    if (question.sortOrder !== sortOrder) {
+                        question.sortOrder = sortOrder;
+                        changed = true;
+                    }
+
+                    if (changed) {
+                        await questionRepo.save(question);
+                    }
                 } else {
                     question = await questionRepo.save(
                         questionRepo.create({
                             questionnaireId: questionnaire.questionnaireId,
-                            text: questionData.text.trim(),
-                            type: questionData.type,
-                            isRequired: questionData.isRequired ?? false,
-                            sortOrder: questionData.sortOrder ?? questionIndex,
+                            text,
+                            type,
+                            isRequired,
+                            sortOrder,
                         }),
                     );
                 }
 
-                // Получаем варианты ответа.
+                // Получаем существующие варианты ответа.
                 const oldOptions = await optionRepo.find({
                     where: {
                         questionId: question.questionId,
@@ -289,7 +343,7 @@ export class QuestionnairesService {
                     }
                 }
 
-                // Удаляем варианты, которые убрали из редактора.
+                // Удаляем варианты, которых больше нет в редакторе.
                 for (const oldOption of oldOptions) {
                     if (incomingOptionIds.has(oldOption.optionId)) {
                         continue;
@@ -308,8 +362,11 @@ export class QuestionnairesService {
                     await optionRepo.remove(oldOption);
                 }
 
-                // Создаём или обновляем варианты.
+                // Создаём или обновляем варианты ответа.
                 for (const [optionIndex, optionData] of (questionData.options ?? []).entries()) {
+                    const optionText = optionData.text.trim();
+                    const sortOrder = optionData.sortOrder ?? optionIndex;
+
                     if (optionData.optionId !== undefined) {
                         const option = oldOptionMap.get(optionData.optionId)!;
 
@@ -319,20 +376,31 @@ export class QuestionnairesService {
                             },
                         });
 
-                        if (usedCount > 0 && option.optionText !== optionData.text.trim()) {
+                        if (usedCount > 0 && option.optionText !== optionText) {
                             throw new BadRequestException(`Нельзя изменить вариант "${option.optionText}": он уже использован в ответах`);
                         }
 
-                        option.optionText = optionData.text.trim();
-                        option.sortOrder = optionData.sortOrder ?? optionIndex;
+                        let changed = false;
 
-                        await optionRepo.save(option);
+                        if (option.optionText !== optionText) {
+                            option.optionText = optionText;
+                            changed = true;
+                        }
+
+                        if (option.sortOrder !== sortOrder) {
+                            option.sortOrder = sortOrder;
+                            changed = true;
+                        }
+
+                        if (changed) {
+                            await optionRepo.save(option);
+                        }
                     } else {
                         await optionRepo.save(
                             optionRepo.create({
                                 questionId: question.questionId,
-                                optionText: optionData.text.trim(),
-                                sortOrder: optionData.sortOrder ?? optionIndex,
+                                optionText,
+                                sortOrder,
                             }),
                         );
                     }

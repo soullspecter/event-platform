@@ -21,8 +21,6 @@ const EMPTY_EVENT = {
     status: 'draft',
 };
 
-// Нормализуем дату до YYYY-MM-DD.
-// Поддерживаем ISO-строки и обычные строки с датой.
 function normalizeDate(value) {
     if (!value) return '';
 
@@ -114,8 +112,6 @@ export default function Layout() {
     // Даты мероприятия.
     const dates = getEventDates(event.startDate, event.endDate);
 
-    // Если выбранная дата больше не существует,
-    // автоматически выбираем первую доступную.
     const selectedProgramDate = dates.includes(activeProgramDate) ? activeProgramDate : dates[0] || '';
 
     // Загрузка мероприятия.
@@ -143,7 +139,11 @@ export default function Layout() {
                 setLocations(Array.isArray(places) ? places : []);
 
                 if (data) {
-                    setEvent(normalizeEvent(data));
+                    setEvent({
+                        ...normalizeEvent(data),
+                        questionnaires: data.questionnaires || [],
+                    });
+
                     setPrograms(normalizePrograms(data.programs));
                     setCommonSchedule(normalizeCommonSchedule(data.commonScheduleByDate));
                 }
@@ -171,7 +171,6 @@ export default function Layout() {
 
         setError('');
         setNotice('');
-
         setSaving(true);
 
         try {
@@ -184,6 +183,7 @@ export default function Layout() {
             let savedId = currentEventId;
             let savedData;
 
+            // Сначала сохраняем все изменения.
             if (currentEventId) {
                 savedData = await eventsApi.updateDraft(currentEventId, payload);
             } else {
@@ -200,6 +200,7 @@ export default function Layout() {
                 window.history.replaceState(null, '', `/events/${savedId}/edit`);
             }
 
+            // Затем публикуем мероприятие.
             if (publish) {
                 await eventsApi.publishEvent(savedId);
 
@@ -208,7 +209,7 @@ export default function Layout() {
                     status: 'published',
                 }));
 
-                setNotice('Мероприятие опубликовано.');
+                setNotice('Изменения сохранены. Мероприятие опубликовано.');
             } else {
                 setNotice('Изменения сохранены.');
             }
@@ -281,10 +282,8 @@ export default function Layout() {
             <div className="event-editor__workspace">
                 <section className="event-editor__panel">
                     <div className="event-editor__tab-content">
-                        {/* Основная информация */}
                         {activeTab === 'basic' && <BasicInfoEditor event={event} onEventChange={setEvent} />}
 
-                        {/* Программа */}
                         {activeTab === 'program' && (
                             <ProgramEditor
                                 event={event}
@@ -298,7 +297,6 @@ export default function Layout() {
                             />
                         )}
 
-                        {/* Анкеты */}
                         {activeTab === 'questionnaires' && (
                             <QuestionnairesAdminPage
                                 eventId={currentEventId}
@@ -321,14 +319,12 @@ export default function Layout() {
                 <div className="event-editor__bottom-actions">
                     <button type="button" className="event-editor__save" disabled={saving} onClick={() => handleSave(false)}>
                         <Save size={17} />
-
                         {saving ? 'Сохранение…' : 'Сохранить черновик'}
                     </button>
 
-                    <button type="button" className="event-editor__publish" disabled={saving || event.status === 'published'} onClick={() => handleSave(true)}>
+                    <button type="button" className="event-editor__publish" disabled={saving} onClick={() => handleSave(true)}>
                         <Send size={17} />
-
-                        {saving ? 'Обработка…' : event.status === 'published' ? 'Уже опубликовано' : 'Опубликовать'}
+                        {saving ? 'Публикация…' : 'Опубликовать'}
                     </button>
                 </div>
             </footer>
