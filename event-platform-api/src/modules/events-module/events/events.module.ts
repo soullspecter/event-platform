@@ -6,13 +6,14 @@ import { CommonScheduleModule } from '../common-schedule/common-schedule.module'
 import { ProgramsModule } from '../programs/programs.module';
 import { ScheduleModule } from '../schedule/schedule.module';
 import { QuestionnairesModule } from '../../questionnaires/questionnaires.module';
+import { CertificatesModule } from '../../certificates/certificates.module';
 
 import { Event } from './entity/event.entity';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Event]), ProgramsModule, ScheduleModule, CommonScheduleModule, QuestionnairesModule],
+    imports: [TypeOrmModule.forFeature([Event]), ProgramsModule, ScheduleModule, CommonScheduleModule, QuestionnairesModule, CertificatesModule],
     controllers: [EventsController],
     providers: [EventsService, RolesGuard],
 })

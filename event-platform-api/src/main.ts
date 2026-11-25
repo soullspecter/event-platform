@@ -4,7 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './modules/app/app.module';
 
 async function bootstrap() {
-    const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+    const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter({ bodyLimit: 30 * 1024 * 1024 }));
 
     app.enableCors({
         origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Check, Save, Send, Info, List, ClipboardList } from 'lucide-react';
+import { Check, Save, Send, Info, List, ClipboardList, Award } from 'lucide-react';
 
 import { eventsApi } from '../../../../shared/api/eventsApi';
 import BasicInfoEditor from '../ProgramEditor/BasicInfo/BasicInfoEditor';
 import ProgramEditor from '../ProgramEditor/ProgramEditor/ProgramEditor';
 import QuestionnairesAdminPage from '../ProgramEditor/QuestionnairesEditor/QuestionnairesEditor';
+import CertificatesEditor from '../Certificates/CertificatesEditor';
 
 import { getEventId, normalizeEvent, normalizePrograms, normalizeCommonSchedule } from '../Utils/eventForm.utils';
 
@@ -19,6 +20,7 @@ const EMPTY_EVENT = {
     startDate: '',
     endDate: '',
     status: 'draft',
+    certificates: [],
 };
 
 function normalizeDate(value) {
@@ -142,6 +144,7 @@ export default function Layout() {
                     setEvent({
                         ...normalizeEvent(data),
                         questionnaires: data.questionnaires || [],
+                        certificates: data.certificateTemplates || [],
                     });
 
                     setPrograms(normalizePrograms(data.programs));
@@ -171,6 +174,11 @@ export default function Layout() {
 
         setError('');
         setNotice('');
+        if ((event.certificates || []).some((certificate) => !certificate.pdfFilePath)) {
+            setError('Для каждого добавленного сертификата сначала загрузите PDF, JPG или PNG либо удалите пустую запись.');
+            return;
+        }
+
         setSaving(true);
 
         try {
@@ -261,6 +269,11 @@ export default function Layout() {
                     <span className="event-editor__tab-label">Программа</span>
                 </button>
 
+                <button type="button" className={`event-editor__tab ${activeTab === 'certificates' ? 'is-active' : ''}`} onClick={() => setActiveTab('certificates')}>
+                    <Award size={18} />
+                    <span className="event-editor__tab-label">Сертификаты</span>
+                </button>
+
                 <button type="button" className={`event-editor__tab ${activeTab === 'questionnaires' ? 'is-active' : ''}`} onClick={() => setActiveTab('questionnaires')}>
                     <ClipboardList size={18} />
                     <span className="event-editor__tab-label">Анкеты</span>
@@ -294,6 +307,18 @@ export default function Layout() {
                                 commonSchedule={commonSchedule}
                                 onCommonScheduleChange={setCommonSchedule}
                                 locations={locations}
+                            />
+                        )}
+
+                        {activeTab === 'certificates' && (
+                            <CertificatesEditor
+                                certificates={event.certificates || []}
+                                onChange={(certificates) =>
+                                    setEvent((prev) => ({
+                                        ...prev,
+                                        certificates,
+                                    }))
+                                }
                             />
                         )}
 

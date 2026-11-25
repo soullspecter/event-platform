@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsDateString, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
 import { SaveEventQuestionnaireDto } from '../../../questionnaires/dto/save-event-questionnaire.dto';
+import { SaveCertificateTemplateDto } from '../../../certificates/dto/save-event-certificates.dto';
 import { SaveCommonScheduleItemDto } from '../../common-schedule/dto/save-common-schedule-item.dto';
 import { SaveProgramDto } from '../../programs/dto/save-program.dto';
 
@@ -39,4 +40,10 @@ export class SaveEventDto {
     @ValidateNested({ each: true })
     @Type(() => SaveEventQuestionnaireDto)
     questionnaires?: SaveEventQuestionnaireDto[];
+
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => SaveCertificateTemplateDto)
+    certificates?: SaveCertificateTemplateDto[];
 }

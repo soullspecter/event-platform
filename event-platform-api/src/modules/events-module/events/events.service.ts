@@ -10,6 +10,7 @@ import { User } from '../../users/entity/user.entity';
 
 import { QuestionnairesService } from '../../questionnaires/questionnaires.service';
 import { Questionnaire } from '../../questionnaires/entities/questionnaire.entity';
+import { CertificatesService } from '../../certificates/certificates.service';
 
 import { SaveEventDto } from './dto/save-event.dto';
 import { Event } from './entity/event.entity';
@@ -22,6 +23,7 @@ export class EventsService {
         private readonly commonScheduleService: CommonScheduleService,
         private readonly scheduleService: ScheduleService,
         private readonly questionnairesService: QuestionnairesService,
+        private readonly certificatesService: CertificatesService,
 
         @InjectRepository(Event)
         private readonly eventsRepository: Repository<Event>,
@@ -65,6 +67,10 @@ export class EventsService {
             // Сохранение анкет
             if (dto.questionnaires !== undefined) {
                 await this.questionnairesService.replaceForEvent(manager, saved.eventId, dto.questionnaires);
+            }
+
+            if (dto.certificates !== undefined) {
+                await this.certificatesService.replaceForEvent(manager, saved.eventId, dto.certificates);
             }
 
             return this.buildEventDetails(manager, saved.eventId);
@@ -147,6 +153,10 @@ export class EventsService {
             // Обновление анкет
             if (dto.questionnaires !== undefined) {
                 await this.questionnairesService.replaceForEvent(manager, event.eventId, dto.questionnaires);
+            }
+
+            if (dto.certificates !== undefined) {
+                await this.certificatesService.replaceForEvent(manager, event.eventId, dto.certificates);
             }
 
             return this.buildEventDetails(manager, eventId);
@@ -316,6 +326,8 @@ export class EventsService {
             }
         }
 
+        const certificateTemplates = await this.certificatesService.findForEvent(manager, eventId);
+
         return {
             eventId: event.eventId,
             title: event.title,
@@ -327,6 +339,7 @@ export class EventsService {
             programs,
             commonScheduleByDate,
             questionnaires,
+            certificateTemplates,
         };
     }
 
