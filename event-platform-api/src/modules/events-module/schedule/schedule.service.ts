@@ -59,10 +59,6 @@ export class ScheduleService {
         });
     }
 
-    /**
-     * Ищет слот с таким же содержимым среди слотов этого мероприятия или создаёт новый.
-     * Поиск ограничен мероприятием, чтобы слоты не делились между разными мероприятиями.
-     */
     async getOrCreateSlot(manager: EntityManager, event: Event, dto: SaveScheduleItemDto): Promise<ScheduleItem> {
         const data = {
             name: this.cleanText(dto.name),

@@ -1,58 +1,99 @@
-import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react';
+import { Outlet, useMatch } from 'react-router-dom';
 
-import AuthPanel from '../../shared/components/auth/AuthPanel/AuthPanel.jsx'
-import { authApi } from '../../shared/api/auth.api.js'
-import Header from '../components/Header/Header.jsx'
-import SideBar from '../components/SideBar/SideBar.jsx'
-import './MainLayout.scss'
+import AuthPanel from '../../shared/components/auth/AuthPanel/AuthPanel.jsx';
+import { authApi } from '../../shared/api/auth.api.js';
+import { registrationsApi } from '../../shared/api/eventsApi.js';
+
+import Header from '../components/Header/Header.jsx';
+import SideBar from '../components/SideBar/SideBar.jsx';
+import './MainLayout.scss';
 
 export default function MainLayout() {
-	const [isAuthOpen, setIsAuthOpen] = useState(false)
-	const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-	const [user, setUser] = useState(() => authApi.getUser())
+    const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [user, setUser] = useState(() => authApi.getUser());
 
-	const isAdmin = user?.roles?.includes('admin')
+    const [registration, setRegistration] = useState({
+        eventId: null,
+        registered: null,
+    });
 
-	function openAuth() {
-		setIsAuthOpen(true)
-	}
+    const eventMatch = useMatch('/events/:id');
+    const eventId = eventMatch?.params.id ?? null;
 
-	function closeAuth() {
-		setIsAuthOpen(false)
-	}
+    const isAdmin = user?.roles?.includes('admin');
 
-	function toggleSidebar() {
-		setIsSidebarOpen(prev => !prev)
-	}
+    const registered = registration.eventId === eventId ? registration.registered : null;
+    useEffect(() => {
+        let active = true;
 
-	function closeSidebar() {
-		setIsSidebarOpen(false)
-	}
+        if (!user || !eventId) return;
 
-	return (
-		<div className='app-layout'>
-			<Header
-				user={user}
-				onOpenAuth={openAuth}
-				onToggleSidebar={toggleSidebar}
-			/>
+        async function checkRegistration() {
+            try {
+                const data = await registrationsApi.getStatus(eventId);
 
-			<main className='app-layout__main'>
-				<Outlet />
-			</main>
+                if (active) {
+                    setRegistration({
+                        eventId,
+                        registered: Boolean(data?.registered),
+                    });
+                }
+            } catch {
+                if (active) {
+                    setRegistration({
+                        eventId,
+                        registered: false,
+                    });
+                }
+            }
+        }
 
-			<SideBar
-				isOpen={isSidebarOpen}
-				onClose={closeSidebar}
-				isAdmin={isAdmin}
-			/>
+        checkRegistration();
 
-			<AuthPanel
-				isOpen={isAuthOpen}
-				onClose={closeAuth}
-				onAuthenticated={setUser}
-			/>
-		</div>
-	)
+        return () => {
+            active = false;
+        };
+    }, [eventId, user]);
+
+    function openAuth() {
+        setIsAuthOpen(true);
+    }
+
+    function closeAuth() {
+        setIsAuthOpen(false);
+    }
+
+    function toggleSidebar() {
+        setIsSidebarOpen((prev) => !prev);
+    }
+
+    function closeSidebar() {
+        setIsSidebarOpen(false);
+    }
+
+    return (
+        <div className="app-layout">
+            <Header user={user} onOpenAuth={openAuth} onToggleSidebar={toggleSidebar} />
+
+            <main className="app-layout__main">
+                <Outlet
+                    context={{
+                        registered,
+                        setRegistered: (value) => {
+                            setRegistration({
+                                eventId,
+                                registered: value,
+                            });
+                        },
+                    }}
+                />
+            </main>
+
+            <SideBar isOpen={isSidebarOpen} onClose={closeSidebar} isAdmin={isAdmin} eventId={eventId} isRegistered={registered === true} />
+
+            <AuthPanel isOpen={isAuthOpen} onClose={closeAuth} onAuthenticated={setUser} />
+        </div>
+    );
 }

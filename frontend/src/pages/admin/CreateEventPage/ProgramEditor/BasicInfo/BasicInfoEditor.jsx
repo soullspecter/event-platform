@@ -9,7 +9,7 @@ export default function BasicInfoEditor({ event, onEventChange }) {
             <div className="basic-info-editor__section">
                 <ImportDocumentButton
                     onImported={(eventId) => {
-                        window.location.href = `/events/${eventId}/edit`; // или ваш роутинг
+                        window.location.href = `/events/${eventId}/edit`;
                     }}
                 />
 

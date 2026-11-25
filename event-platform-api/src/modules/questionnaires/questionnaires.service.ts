@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from '@nestjs/common';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm';
 
@@ -38,8 +39,35 @@ export class QuestionnairesService {
     ) {}
 
     // =====================================================
+    // ЕДИНАЯ ПРОВЕРКА ДОСТУПНОСТИ АНКЕТЫ
+    // =====================================================
+
+    private isQuestionnaireAvailable(questionnaire: Questionnaire, now: Date = new Date()): boolean {
+        const started = !questionnaire.availableFrom || questionnaire.availableFrom.getTime() <= now.getTime();
+
+        const notExpired = !questionnaire.availableUntil || questionnaire.availableUntil.getTime() >= now.getTime();
+
+        return started && notExpired;
+    }
+
+    // =====================================================
+    // ПРОВЕРКА РЕГИСТРАЦИИ
+    // =====================================================
+
+    private async isUserRegistered(eventId: number, userId: number): Promise<boolean> {
+        const registered = await this.dataSource.query(
+            `SELECT 1
+             FROM registrations
+             WHERE event_id = $1 AND user_id = $2
+             LIMIT 1`,
+            [eventId, userId],
+        );
+
+        return registered.length > 0;
+    }
+
+    // =====================================================
     // СОЗДАНИЕ АНКЕТЫ ОТДЕЛЬНО
-    // Оставлено для существующего POST /questionnaires
     // =====================================================
 
     async create(dto: CreateQuestionnaireDto) {
@@ -50,12 +78,13 @@ export class QuestionnairesService {
             title: dto.title,
             availableFrom: dto.availableFrom ? new Date(dto.availableFrom) : null,
             availableUntil: dto.availableUntil ? new Date(dto.availableUntil) : null,
-            isPublished: dto.isPublished ?? false,
+
             questions: (dto.questions ?? []).map((q, index) => ({
                 text: q.text,
                 type: q.type,
                 isRequired: q.isRequired ?? false,
                 sortOrder: q.sortOrder ?? index,
+
                 options: (q.options ?? []).map((option, optionIndex) => ({
                     optionText: option.text,
                     sortOrder: option.sortOrder ?? optionIndex,
@@ -68,7 +97,6 @@ export class QuestionnairesService {
 
     // =====================================================
     // СОХРАНЕНИЕ АНКЕТ ВМЕСТЕ С МЕРОПРИЯТИЕМ
-    // Вызывается из EventsService внутри транзакции
     // =====================================================
 
     async replaceForEvent(manager: EntityManager, eventId: number, items: SaveEventQuestionnaireDto[]) {
@@ -159,9 +187,10 @@ export class QuestionnairesService {
             let questionnaire: Questionnaire;
 
             const title = item.title.trim();
+
             const availableFrom = item.availableFrom ? new Date(item.availableFrom) : null;
+
             const availableUntil = item.availableUntil ? new Date(item.availableUntil) : null;
-            const isPublished = item.isPublished ?? false;
 
             if (item.questionnaireId !== undefined) {
                 questionnaire = existingQuestionnaireMap.get(item.questionnaireId)!;
@@ -174,6 +203,7 @@ export class QuestionnairesService {
                 }
 
                 const oldAvailableFrom = questionnaire.availableFrom?.getTime() ?? null;
+
                 const newAvailableFrom = availableFrom?.getTime() ?? null;
 
                 if (oldAvailableFrom !== newAvailableFrom) {
@@ -182,15 +212,11 @@ export class QuestionnairesService {
                 }
 
                 const oldAvailableUntil = questionnaire.availableUntil?.getTime() ?? null;
+
                 const newAvailableUntil = availableUntil?.getTime() ?? null;
 
                 if (oldAvailableUntil !== newAvailableUntil) {
                     questionnaire.availableUntil = availableUntil;
-                    changed = true;
-                }
-
-                if (questionnaire.isPublished !== isPublished) {
-                    questionnaire.isPublished = isPublished;
                     changed = true;
                 }
 
@@ -204,7 +230,6 @@ export class QuestionnairesService {
                         title,
                         availableFrom,
                         availableUntil,
-                        isPublished,
                     }),
                 );
             }
@@ -275,7 +300,6 @@ export class QuestionnairesService {
                         },
                     });
 
-                    // Нельзя менять смысл вопроса, если на него уже ответили.
                     if (answersCount > 0 && (question.text !== text || question.type !== type || question.isRequired !== isRequired)) {
                         throw new BadRequestException(`Нельзя изменить вопрос "${question.text}": на него уже есть ответы`);
                     }
@@ -447,14 +471,9 @@ export class QuestionnairesService {
     // =====================================================
 
     async findAvailableForUser(eventId: number, userId: number) {
-        const registered = await this.dataSource.query(
-            `SELECT 1 FROM registrations
-             WHERE event_id = $1 AND user_id = $2
-             LIMIT 1`,
-            [eventId, userId],
-        );
+        const registered = await this.isUserRegistered(eventId, userId);
 
-        if (!registered.length) {
+        if (!registered) {
             throw new ForbiddenException('Для просмотра анкеты необходимо зарегистрироваться на мероприятие');
         }
 
@@ -463,7 +482,6 @@ export class QuestionnairesService {
         const questionnaires = await this.questionnairesRepo.find({
             where: {
                 eventId,
-                isPublished: true,
             },
             relations: {
                 questions: {
@@ -479,10 +497,10 @@ export class QuestionnairesService {
         });
 
         return questionnaires
-            .filter((q) => (!q.availableFrom || q.availableFrom <= now) && (!q.availableUntil || q.availableUntil >= now))
-            .map((q) => ({
-                ...q,
-                questions: (q.questions ?? [])
+            .filter((questionnaire) => this.isQuestionnaireAvailable(questionnaire, now))
+            .map((questionnaire) => ({
+                ...questionnaire,
+                questions: (questionnaire.questions ?? [])
                     .sort((a, b) => a.sortOrder - b.sortOrder)
                     .map((question) => ({
                         ...question,
@@ -505,24 +523,18 @@ export class QuestionnairesService {
             },
         });
 
-        if (!questionnaire || !questionnaire.isPublished) {
-            throw new NotFoundException('Анкета не найдена или не опубликована');
+        if (!questionnaire) {
+            throw new NotFoundException('Анкета не найдена');
         }
 
-        const now = new Date();
-
-        if ((questionnaire.availableFrom && questionnaire.availableFrom > now) || (questionnaire.availableUntil && questionnaire.availableUntil < now)) {
+        // Повторная серверная проверка непосредственно перед отправкой.
+        if (!this.isQuestionnaireAvailable(questionnaire)) {
             throw new ForbiddenException('Анкета сейчас недоступна');
         }
 
-        const registered = await this.dataSource.query(
-            `SELECT 1 FROM registrations
-             WHERE event_id = $1 AND user_id = $2
-             LIMIT 1`,
-            [questionnaire.eventId, userId],
-        );
+        const registered = await this.isUserRegistered(questionnaire.eventId, userId);
 
-        if (!registered.length) {
+        if (!registered) {
             throw new ForbiddenException('Вы не зарегистрированы на мероприятие');
         }
 
@@ -600,8 +612,16 @@ export class QuestionnairesService {
 
         return this.dataSource.transaction(async (manager) => {
             const submissionRepo = manager.getRepository(QuestionnaireSubmission);
+
             const answerRepo = manager.getRepository(Answer);
             const answerOptionRepo = manager.getRepository(AnswerOption);
+
+            // Повторная проверка времени перед сохранением.
+            const currentTime = new Date();
+
+            if (!this.isQuestionnaireAvailable(questionnaire, currentTime)) {
+                throw new ForbiddenException('Время заполнения анкеты истекло');
+            }
 
             const submission = await submissionRepo.save(
                 submissionRepo.create({
@@ -641,7 +661,7 @@ export class QuestionnairesService {
     }
 
     // =====================================================
-    // ПРОВЕРКА ДАТ АНКЕТЫ
+    // ПРОВЕРКА КОРРЕКТНОСТИ ДАТ
     // =====================================================
 
     private validateDates(availableFrom?: string | null, availableUntil?: string | null) {

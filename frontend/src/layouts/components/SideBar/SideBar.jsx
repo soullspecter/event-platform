@@ -1,13 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
-import { X, CalendarPlus, FileText, History } from 'lucide-react';
+import { X, CalendarPlus, FileText, History, ClipboardList } from 'lucide-react';
 
 import './SideBar.scss';
 
-export default function SideBar({ isOpen, onClose, isAdmin }) {
+export default function SideBar({ isOpen, onClose, isAdmin, eventId, isRegistered }) {
     const { pathname } = useLocation();
 
     const isDraftsActive = pathname.startsWith('/events/drafts');
     const isHistoryActive = pathname.startsWith('/events/history');
+
+    const isQuestionnairesActive = eventId && pathname === `/events/${eventId}/questionnaires`;
 
     return (
         <>
@@ -16,6 +18,7 @@ export default function SideBar({ isOpen, onClose, isAdmin }) {
             <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`} aria-label="Боковая панель" aria-hidden={!isOpen}>
                 <div className="sidebar__header">
                     <h2 className="sidebar__title">Панель</h2>
+
                     <button className="sidebar__close" type="button" onClick={onClose} aria-label="Закрыть панель">
                         <X size={20} strokeWidth={2} />
                     </button>
@@ -40,6 +43,13 @@ export default function SideBar({ isOpen, onClose, isAdmin }) {
                         <History size={18} strokeWidth={2} />
                         <span>История мероприятий</span>
                     </Link>
+
+                    {!isAdmin && eventId && isRegistered && (
+                        <Link to={`/events/${eventId}/questionnaires`} className={`sidebar__action${isQuestionnairesActive ? ' sidebar__action--active' : ''}`} onClick={onClose}>
+                            <ClipboardList size={18} strokeWidth={2} />
+                            <span>Пройти анкетирование</span>
+                        </Link>
+                    )}
                 </div>
             </aside>
         </>

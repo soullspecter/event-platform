@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { IsArray, IsDateString, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested, IsBoolean } from 'class-validator';
 
 class UpdateOptionDto {
     @IsOptional()
@@ -62,10 +62,6 @@ export class UpdateQuestionnaireDto {
     @IsOptional()
     @IsDateString()
     availableUntil?: string | null;
-
-    @IsOptional()
-    @IsBoolean()
-    isPublished?: boolean;
 
     @IsOptional()
     @IsArray()

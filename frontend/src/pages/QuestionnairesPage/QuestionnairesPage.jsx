@@ -1,30 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-function getToken() {
-    return localStorage.getItem('token');
-}
-
-async function apiRequest(url, options = {}) {
-    const response = await fetch(`${API_URL}${url}`, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${getToken()}`,
-            ...options.headers,
-        },
-    });
-
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-        throw new Error(data?.message || 'Ошибка запроса');
-    }
-
-    return data;
-}
+import { questionnairesApi } from '../../shared/api/questionnaires.api';
+import './QuestionnairesPage.scss';
 
 export default function QuestionnairesPage() {
     const { eventId } = useParams();
@@ -38,38 +15,25 @@ export default function QuestionnairesPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    async function loadQuestionnaires() {
-        try {
-            setLoading(true);
-
-            const data = await apiRequest(`/questionnaires/available/${eventId}`);
-
-            setQuestionnaires(Array.isArray(data) ? data : []);
-            setError('');
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }
-
+    // Загрузка доступных анкет
     useEffect(() => {
-        let ignore = false;
+        let active = true;
 
         async function fetchQuestionnaires() {
             try {
-                const data = await apiRequest(`/questionnaires/available/${eventId}`);
+                const data = await questionnairesApi.getAvailable(eventId);
 
-                if (!ignore) {
+                if (active) {
                     setQuestionnaires(Array.isArray(data) ? data : []);
                     setError('');
                 }
             } catch (err) {
-                if (!ignore) {
-                    setError(err.message);
+                if (active) {
+                    setQuestionnaires([]);
+                    setError(err.message || 'Не удалось загрузить анкеты');
                 }
             } finally {
-                if (!ignore) {
+                if (active) {
                     setLoading(false);
                 }
             }
@@ -78,10 +42,11 @@ export default function QuestionnairesPage() {
         fetchQuestionnaires();
 
         return () => {
-            ignore = true;
+            active = false;
         };
     }, [eventId]);
 
+    // Текстовый ответ
     function updateTextAnswer(questionId, value) {
         setAnswers((current) => ({
             ...current,
@@ -92,6 +57,7 @@ export default function QuestionnairesPage() {
         }));
     }
 
+    // Ответ с одним вариантом
     function updateSingleChoice(questionId, optionId) {
         setAnswers((current) => ({
             ...current,
@@ -102,11 +68,14 @@ export default function QuestionnairesPage() {
         }));
     }
 
+    // Ответ с несколькими вариантами
     function updateMultipleChoice(questionId, optionId, checked) {
         setAnswers((current) => {
             const previous = current[questionId]?.optionIds || [];
 
-            const optionIds = checked ? [...previous, Number(optionId)] : previous.filter((id) => id !== Number(optionId));
+            const id = Number(optionId);
+
+            const optionIds = checked ? [...new Set([...previous, id])] : previous.filter((item) => item !== id);
 
             return {
                 ...current,
@@ -118,20 +87,22 @@ export default function QuestionnairesPage() {
         });
     }
 
+    // Отправка ответов
     async function submitQuestionnaire(event) {
         event.preventDefault();
 
-        if (!selectedQuestionnaire) return;
+        if (!selectedQuestionnaire || sending) return;
 
         setError('');
         setSuccess('');
 
         const questions = selectedQuestionnaire.questions || [];
 
+        // Проверяем обязательные вопросы
         for (const question of questions) {
-            const answer = answers[question.questionId];
-
             if (!question.isRequired) continue;
+
+            const answer = answers[question.questionId];
 
             if (question.type === 'text') {
                 if (!answer?.textValue?.trim()) {
@@ -144,11 +115,12 @@ export default function QuestionnairesPage() {
             }
         }
 
+        // Формируем данные для backend
         const payload = {
             answers: questions
                 .filter((question) => answers[question.questionId])
                 .map((question) => ({
-                    questionId: question.questionId,
+                    questionId: Number(question.questionId),
                     textValue: question.type === 'text' ? answers[question.questionId].textValue : null,
                     optionIds: question.type === 'text' ? [] : answers[question.questionId].optionIds || [],
                 })),
@@ -157,25 +129,28 @@ export default function QuestionnairesPage() {
         try {
             setSending(true);
 
-            await apiRequest(`/questionnaires/${selectedQuestionnaire.questionnaireId}/submit`, {
-                method: 'POST',
-                body: JSON.stringify(payload),
-            });
+            await questionnairesApi.submit(selectedQuestionnaire.questionnaireId, payload.answers);
 
             setSuccess('Ответы успешно отправлены');
             setSelectedQuestionnaire(null);
             setAnswers({});
 
-            await loadQuestionnaires();
+            const data = await questionnairesApi.getAvailable(eventId);
+
+            setQuestionnaires(Array.isArray(data) ? data : []);
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Не удалось отправить ответы');
         } finally {
             setSending(false);
         }
     }
 
     if (loading) {
-        return <main>Загрузка анкет...</main>;
+        return (
+            <main className="questionnaires-page">
+                <p>Загрузка анкет...</p>
+            </main>
+        );
     }
 
     if (selectedQuestionnaire) {
@@ -193,7 +168,8 @@ export default function QuestionnairesPage() {
                 </button>
 
                 <h1>{selectedQuestionnaire.title}</h1>
-                <p>{selectedQuestionnaire.description}</p>
+
+                {selectedQuestionnaire.description && <p>{selectedQuestionnaire.description}</p>}
 
                 {error && <div role="alert">{error}</div>}
                 {success && <div role="status">{success}</div>}
@@ -201,11 +177,16 @@ export default function QuestionnairesPage() {
                 <form onSubmit={submitQuestionnaire}>
                     {(selectedQuestionnaire.questions || []).map((question) => (
                         <fieldset key={question.questionId}>
-                            <legend>
-                                {question.text}
-                                {question.isRequired && ' *'}
-                            </legend>
+                            <fieldset key={question.questionId}>
+                                <div className="question-title">
+                                    {question.text}
+                                    {question.isRequired && <span>*</span>}
+                                </div>
 
+                                {/* Поля ответа остаются без изменений */}
+                            </fieldset>
+
+                            {/* Текстовый вопрос */}
                             {question.type === 'text' && (
                                 <textarea
                                     value={answers[question.questionId]?.textValue || ''}
@@ -214,6 +195,7 @@ export default function QuestionnairesPage() {
                                 />
                             )}
 
+                            {/* Один вариант ответа */}
                             {question.type === 'single_choice' &&
                                 (question.options || []).map((option) => (
                                     <label key={option.optionId}>
@@ -221,21 +203,24 @@ export default function QuestionnairesPage() {
                                             type="radio"
                                             name={`question-${question.questionId}`}
                                             value={option.optionId}
-                                            checked={answers[question.questionId]?.optionIds?.[0] === option.optionId}
+                                            checked={answers[question.questionId]?.optionIds?.[0] === Number(option.optionId)}
                                             onChange={() => updateSingleChoice(question.questionId, option.optionId)}
                                         />
+
                                         {option.optionText}
                                     </label>
                                 ))}
 
+                            {/* Несколько вариантов ответа */}
                             {question.type === 'multiple_choice' &&
                                 (question.options || []).map((option) => (
                                     <label key={option.optionId}>
                                         <input
                                             type="checkbox"
-                                            checked={(answers[question.questionId]?.optionIds || []).includes(option.optionId)}
+                                            checked={(answers[question.questionId]?.optionIds || []).includes(Number(option.optionId))}
                                             onChange={(event) => updateMultipleChoice(question.questionId, option.optionId, event.target.checked)}
                                         />
+
                                         {option.optionText}
                                     </label>
                                 ))}
@@ -250,6 +235,7 @@ export default function QuestionnairesPage() {
         );
     }
 
+    // Список анкет
     return (
         <main className="questionnaires-page">
             <h1>Анкеты мероприятия</h1>
@@ -257,30 +243,27 @@ export default function QuestionnairesPage() {
             {error && <div role="alert">{error}</div>}
             {success && <div role="status">{success}</div>}
 
-            {questionnaires.length === 0 ? (
-                <p>Сейчас нет доступных анкет.</p>
-            ) : (
-                <div>
-                    {questionnaires.map((questionnaire) => (
-                        <article key={questionnaire.questionnaireId}>
-                            <h2>{questionnaire.title}</h2>
-                            <p>{questionnaire.description}</p>
+            {!error && questionnaires.length === 0 && <p>Сейчас нет доступных анкет.</p>}
 
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setSelectedQuestionnaire(questionnaire);
-                                    setAnswers({});
-                                    setError('');
-                                    setSuccess('');
-                                }}
-                            >
-                                Пройти анкету
-                            </button>
-                        </article>
-                    ))}
-                </div>
-            )}
+            {questionnaires.map((questionnaire) => (
+                <article key={questionnaire.questionnaireId}>
+                    <h2>{questionnaire.title}</h2>
+
+                    {questionnaire.description && <p>{questionnaire.description}</p>}
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setSelectedQuestionnaire(questionnaire);
+                            setAnswers({});
+                            setError('');
+                            setSuccess('');
+                        }}
+                    >
+                        Пройти анкету
+                    </button>
+                </article>
+            ))}
         </main>
     );
 }

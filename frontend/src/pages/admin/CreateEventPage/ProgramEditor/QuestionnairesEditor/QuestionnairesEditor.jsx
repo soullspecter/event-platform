@@ -5,6 +5,10 @@ import { createClientId } from '../../Utils/eventForm.utils';
 
 import '../QuestionnairesEditor/QuestionnairesEditor.scss';
 
+// Временная зона анкет — Екатеринбург (UTC+5).
+const QUESTIONNAIRE_TIME_ZONE = 'Asia/Yekaterinburg';
+const YEKATERINBURG_OFFSET = '+05:00';
+
 function createEmptyQuestion() {
     return {
         clientId: createClientId('question'),
@@ -21,23 +25,46 @@ function createEmptyQuestionnaire() {
         clientId: createClientId('questionnaire'),
         questionnaireId: null,
         title: '',
-        availableFrom: '',
-        availableUntil: '',
-        isPublished: false,
+        availableFrom: null,
+        availableUntil: null,
         questions: [createEmptyQuestion()],
     };
 }
 
+// ISO-дата из backend -> строка для datetime-local по Екатеринбургу.
 function toDateTimeLocal(value) {
     if (!value) return '';
 
-    const date = new Date(value);
+    const hasTimeZone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(String(value));
 
-    if (Number.isNaN(date.getTime())) {
-        return String(value).slice(0, 16);
-    }
+    const date = new Date(hasTimeZone ? value : `${String(value).replace(' ', 'T')}:00${YEKATERINBURG_OFFSET}`);
 
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: QUESTIONNAIRE_TIME_ZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+    }).formatToParts(date);
+
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+    return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
+}
+
+// Значение datetime-local по Екатеринбургу -> ISO UTC для backend.
+function fromDateTimeLocal(value) {
+    if (!value) return null;
+
+    const date = new Date(`${value}:00${YEKATERINBURG_OFFSET}`);
+
+    if (Number.isNaN(date.getTime())) return null;
+
+    return date.toISOString();
 }
 
 function normalizeQuestionnaire(questionnaire) {
@@ -46,9 +73,9 @@ function normalizeQuestionnaire(questionnaire) {
 
         questionnaireId: questionnaire.questionnaireId ?? null,
         title: questionnaire.title || '',
-        availableFrom: toDateTimeLocal(questionnaire.availableFrom),
-        availableUntil: toDateTimeLocal(questionnaire.availableUntil),
-        isPublished: questionnaire.isPublished ?? false,
+
+        availableFrom: questionnaire.availableFrom || null,
+        availableUntil: questionnaire.availableUntil || null,
 
         questions: (questionnaire.questions || []).map((question) => ({
             clientId: question.clientId || createClientId('question'),
@@ -86,8 +113,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
 
     const selectedQuestionnaire = questionnaires.find((questionnaire) => getQuestionnaireKey(questionnaire) === selectedId);
 
-    // Обновление выбранной анкеты.
-    // Передаём родителю готовый массив, а не callback.
     function updateSelectedQuestionnaire(changes) {
         if (!selectedId) return;
 
@@ -103,7 +128,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         onQuestionnairesChange(updatedQuestionnaires);
     }
 
-    // Обновление вопроса.
     function updateQuestion(questionId, changes) {
         if (!selectedQuestionnaire) return;
 
@@ -119,7 +143,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
-    // Добавление вопроса.
     function addQuestion() {
         if (!selectedQuestionnaire) return;
 
@@ -128,7 +151,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
-    // Удаление вопроса.
     function removeQuestion(questionId) {
         if (!selectedQuestionnaire) return;
 
@@ -137,7 +159,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
-    // Изменение типа вопроса.
     function changeQuestionType(questionId, type) {
         const question = selectedQuestionnaire?.questions.find((item) => item.clientId === questionId);
 
@@ -159,7 +180,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
-    // Добавление варианта ответа.
     function addOption(questionId) {
         const question = selectedQuestionnaire?.questions.find((item) => item.clientId === questionId);
 
@@ -176,7 +196,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
-    // Изменение варианта ответа.
     function updateOption(questionId, optionId, text) {
         const question = selectedQuestionnaire?.questions.find((item) => item.clientId === questionId);
 
@@ -194,7 +213,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
-    // Удаление варианта ответа.
     function removeOption(questionId, optionId) {
         const question = selectedQuestionnaire?.questions.find((item) => item.clientId === questionId);
 
@@ -205,7 +223,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         });
     }
 
-    // Создание анкеты.
     function addQuestionnaire() {
         const questionnaire = createEmptyQuestionnaire();
 
@@ -214,14 +231,11 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         setSelectedId(getQuestionnaireKey(questionnaire));
     }
 
-    // Выбор анкеты из списка.
     function selectQuestionnaire(questionnaire) {
         const key = getQuestionnaireKey(questionnaire);
 
         setSelectedId(key);
 
-        // Нормализуем данные только при первом выборе,
-        // если у старой анкеты ещё нет clientId.
         if (!questionnaire.clientId) {
             const normalized = normalizeQuestionnaire(questionnaire);
 
@@ -231,7 +245,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
         }
     }
 
-    // Удаление выбранной анкеты.
     function removeSelectedQuestionnaire() {
         if (!selectedQuestionnaire) return;
 
@@ -248,7 +261,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
 
     return (
         <div className="questionnaires-editor-split">
-            {/* Левая панель */}
             <aside className="questionnaires-editor-split__sidebar">
                 <div className="questionnaires-editor-split__actions">
                     <button type="button" onClick={addQuestionnaire}>
@@ -278,8 +290,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
                                         <strong>{questionnaire.title || 'Без названия'}</strong>
 
                                         <small>{questionnaire.questions?.length || 0} вопросов</small>
-
-                                        <span className="questionnaires-editor-split__status">{questionnaire.isPublished ? 'Опубликована' : 'Черновик'}</span>
                                     </button>
                                 </li>
                             );
@@ -288,13 +298,11 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
                 )}
             </aside>
 
-            {/* Правая панель */}
             <section className="questionnaires-editor-split__editor">
                 {!selectedQuestionnaire ? (
                     <div className="questionnaires-editor-split__empty">Выберите анкету слева или создайте новую.</div>
                 ) : (
                     <div className="questionnaires-edit-form">
-                        {/* Шапка анкеты */}
                         <div className="questionnaires-edit-form__header">
                             <div>
                                 <h2>{selectedQuestionnaire.questionnaireId ? 'Редактирование анкеты' : 'Новая анкета'}</h2>
@@ -308,7 +316,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
                             </button>
                         </div>
 
-                        {/* Основные поля */}
                         <div className="questionnaires-edit-form__fields">
                             <label className="field">
                                 <span>Название анкеты</span>
@@ -329,15 +336,15 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
                                 <label className="field">
                                     <span>
                                         <CalendarDays size={15} />
-                                        Доступна с
+                                        Доступна с (Екатеринбург)
                                     </span>
 
                                     <input
                                         type="datetime-local"
-                                        value={selectedQuestionnaire.availableFrom ?? ''}
+                                        value={toDateTimeLocal(selectedQuestionnaire.availableFrom)}
                                         onChange={(event) =>
                                             updateSelectedQuestionnaire({
-                                                availableFrom: event.target.value,
+                                                availableFrom: fromDateTimeLocal(event.target.value),
                                             })
                                         }
                                     />
@@ -346,15 +353,15 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
                                 <label className="field">
                                     <span>
                                         <CalendarDays size={15} />
-                                        Доступна до
+                                        Доступна до (Екатеринбург)
                                     </span>
 
                                     <input
                                         type="datetime-local"
-                                        value={selectedQuestionnaire.availableUntil ?? ''}
+                                        value={toDateTimeLocal(selectedQuestionnaire.availableUntil)}
                                         onChange={(event) =>
                                             updateSelectedQuestionnaire({
-                                                availableUntil: event.target.value,
+                                                availableUntil: fromDateTimeLocal(event.target.value),
                                             })
                                         }
                                     />
@@ -362,7 +369,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
                             </div>
                         </div>
 
-                        {/* Вопросы */}
                         <div className="questionnaires-edit-form__section-heading">
                             <div>
                                 <h3>Вопросы анкеты</h3>
@@ -428,7 +434,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
                                         </label>
                                     </div>
 
-                                    {/* Варианты ответа */}
                                     {question.type !== 'text' && (
                                         <div className="questionnaires-edit-form__options">
                                             <div className="questionnaires-edit-form__options-heading">
@@ -463,7 +468,6 @@ export default function QuestionnairesAdminPage({ questionnaires = [], onQuestio
                             ))}
                         </div>
 
-                        {/* Добавление вопроса */}
                         <div className="questionnaires-edit-form__actions">
                             <button type="button" className="questionnaires-edit-form__secondary" onClick={addQuestion}>
                                 <Plus size={17} />

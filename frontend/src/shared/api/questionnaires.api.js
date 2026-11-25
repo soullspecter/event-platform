@@ -1,15 +1,17 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
 function getToken() {
-    return localStorage.getItem('token');
+    return localStorage.getItem('access_token') || localStorage.getItem('accessToken') || localStorage.getItem('token');
 }
 
 async function request(path, options = {}) {
+    const token = getToken();
+
     const response = await fetch(`${API_URL}/questionnaires${path}`, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${getToken()}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...options.headers,
         },
     });

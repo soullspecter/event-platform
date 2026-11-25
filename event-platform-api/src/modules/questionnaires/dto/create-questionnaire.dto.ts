@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { IsArray, IsDateString, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class CreateOptionDto {
@@ -55,10 +55,6 @@ export class CreateQuestionnaireDto {
     @IsOptional()
     @IsDateString()
     availableUntil?: string | null;
-
-    @IsOptional()
-    @IsBoolean()
-    isPublished?: boolean;
 
     @IsArray()
     @ValidateNested({ each: true })

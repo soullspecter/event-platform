@@ -1,0 +1,350 @@
+.questionnaires-page,
+.questionnaire-form {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    color: var(--color-text);
+    font-family: var(--font-family-body);
+}
+
+// Общая типографика
+.questionnaires-page,
+.questionnaire-form {
+    h1 {
+        margin: 0 0 24px;
+        color: var(--color-navy);
+        font-family: var(--font-family-heading);
+        font-size: 30px;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+
+    h2 {
+        margin: 0 0 12px;
+        color: var(--color-navy);
+        font-family: var(--font-family-heading);
+        font-size: 21px;
+        font-weight: 700;
+    }
+
+    p {
+        margin: 0 0 18px;
+        color: var(--color-text-secondary);
+        font-size: 15px;
+        line-height: 1.6;
+    }
+}
+
+// Список анкет
+.questionnaires-page {
+    > article {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 18px;
+        padding: 24px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        transition:
+            box-shadow var(--transition-normal),
+            transform var(--transition-normal);
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        p {
+            margin-bottom: 4px;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 11px 22px;
+            color: #fff;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: var(--font-family-body);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition:
+                transform var(--transition-normal),
+                box-shadow var(--transition-normal),
+                opacity var(--transition-normal);
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-md);
+            }
+
+            &:active {
+                transform: translateY(0);
+            }
+
+            &:focus-visible {
+                outline: 3px solid var(--color-primary-soft);
+                outline-offset: 3px;
+            }
+        }
+    }
+
+    > p {
+        padding: 20px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+    }
+
+    > p:only-child {
+        text-align: center;
+    }
+}
+
+// Форма анкеты
+.questionnaire-form {
+    > button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+        padding: 10px 16px;
+        color: var(--color-primary);
+        background: var(--color-primary-soft);
+        border: 1px solid transparent;
+        border-radius: var(--radius-md);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+            background var(--transition-normal),
+            color var(--transition-normal);
+
+        &:hover {
+            color: white;
+            background: var(--color-primary);
+        }
+    }
+
+    > h1 {
+        margin-bottom: 12px;
+    }
+
+    > p {
+        margin-bottom: 24px;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    fieldset {
+        min-width: 0;
+        margin: 0;
+        padding: 22px 24px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .question-title {
+        margin-bottom: 16px;
+        color: var(--color-navy);
+        font-family: var(--font-family-heading);
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.5;
+
+        span {
+            margin-left: 4px;
+            color: var(--color-danger);
+        }
+    }
+
+    textarea {
+        display: block;
+        width: 100%;
+        min-height: 120px;
+        margin-top: 14px;
+        padding: 14px 16px;
+        color: var(--color-text);
+        background: var(--color-background);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        font: inherit;
+        font-size: 15px;
+        line-height: 1.5;
+        resize: vertical;
+        outline: none;
+        transition:
+            border-color var(--transition-normal),
+            box-shadow var(--transition-normal);
+
+        &::placeholder {
+            color: var(--color-text-secondary);
+        }
+
+        &:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-soft);
+        }
+    }
+
+    label {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-top: 14px;
+        padding: 12px 14px;
+        color: var(--color-text);
+        background: var(--color-background);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        font-size: 15px;
+        line-height: 1.5;
+        cursor: pointer;
+        transition:
+            border-color var(--transition-normal),
+            background var(--transition-normal);
+
+        &:hover {
+            background: var(--color-primary-soft);
+            border-color: var(--color-primary);
+        }
+
+        input {
+            flex: 0 0 auto;
+            width: 18px;
+            height: 18px;
+            margin: 2px 0 0;
+            accent-color: var(--color-primary);
+            cursor: pointer;
+        }
+    }
+
+    form > button[type='submit'] {
+        align-self: flex-start;
+        min-height: 46px;
+        padding: 12px 24px;
+        color: white;
+        background: var(--gradient-primary);
+        border: none;
+        border-radius: var(--radius-md);
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+        transition:
+            transform var(--transition-normal),
+            box-shadow var(--transition-normal),
+            opacity var(--transition-normal);
+
+        &:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    }
+}
+
+// Сообщения об ошибках и успехе
+[role='alert'] {
+    margin: 16px 0;
+    padding: 14px 16px;
+    color: var(--color-danger);
+    background: rgba(220, 53, 69, 0.08);
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+[role='status'] {
+    margin: 16px 0;
+    padding: 14px 16px;
+    color: var(--color-success);
+    background: rgba(40, 167, 69, 0.08);
+    border: 1px solid rgba(40, 167, 69, 0.25);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+// Загрузка
+.questionnaires-page > p:only-child {
+    text-align: center;
+}
+
+// Адаптивность
+@media (max-width: 768px) {
+    .questionnaires-page,
+    .questionnaire-form {
+        padding: 24px 18px;
+
+        h1 {
+            font-size: 26px;
+        }
+    }
+
+    .questionnaires-page > article {
+        padding: 20px;
+    }
+
+    .questionnaire-form fieldset {
+        padding: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .questionnaires-page,
+    .questionnaire-form {
+        padding: 20px 14px;
+
+        h1 {
+            font-size: 23px;
+        }
+
+        h2 {
+            font-size: 19px;
+        }
+    }
+
+    .questionnaires-page > article {
+        padding: 16px;
+    }
+
+    .questionnaire-form fieldset {
+        padding: 16px 14px;
+    }
+
+    .questionnaire-form form > button[type='submit'] {
+        width: 100%;
+    }
+}
+
+// Учитываем системную настройку уменьшения анимации
+@media (prefers-reduced-motion: reduce) {
+    .questionnaires-page *,
+    .questionnaire-form * {
+        transition: none !important;
+        animation: none !important;
+    }
+}

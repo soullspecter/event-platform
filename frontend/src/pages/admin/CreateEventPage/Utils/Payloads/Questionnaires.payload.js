@@ -7,8 +7,6 @@ export function buildQuestionnairesPayload(questionnaires = []) {
         availableFrom: questionnaire.availableFrom || null,
         availableUntil: questionnaire.availableUntil || null,
 
-        isPublished: questionnaire.isPublished ?? false,
-
         questions: (questionnaire.questions || []).map((question, index) => ({
             ...(question.questionId != null ? { questionId: Number(question.questionId) } : {}),
 
