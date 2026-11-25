@@ -7,10 +7,12 @@ import { AuthModule } from '../auth/auth.module';
 import { EventsModule } from '../events-module/events/events.module';
 import { QuestionnairesModule } from '../questionnaires/questionnaires.module';
 import { RegistrationsModule } from '../registrations/registrations.module';
+import { ProgramSelectionsModule } from '../program-selections/program-selections.module';
 
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
+
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
@@ -32,11 +34,13 @@ import { RegistrationsModule } from '../registrations/registrations.module';
                 },
             }),
         }),
+
         UsersModule,
         AuthModule,
         EventsModule,
         QuestionnairesModule,
         RegistrationsModule,
+        ProgramSelectionsModule,
     ],
 })
 export class AppModule {}

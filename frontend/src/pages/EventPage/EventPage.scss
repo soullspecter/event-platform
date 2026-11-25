@@ -87,9 +87,7 @@
         overflow: hidden;
         border-radius: 14px;
         background:
-            var(--texture-lines),
-            radial-gradient(ellipse at 80% 20%, rgb(25 184 255 / 55%), transparent 42%),
-            radial-gradient(ellipse at 0% 100%, rgb(10 120 232 / 60%), transparent 45%),
+            var(--texture-lines), radial-gradient(ellipse at 80% 20%, rgb(25 184 255 / 55%), transparent 42%), radial-gradient(ellipse at 0% 100%, rgb(10 120 232 / 60%), transparent 45%),
             var(--gradient-hero);
         box-shadow:
             0 30px 80px rgb(6 62 140 / 38%),
@@ -129,6 +127,56 @@
             font-size: 16px;
             line-height: 1.75;
             white-space: pre-line;
+        }
+    }
+
+    &__hero-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 26px;
+
+        > * {
+            margin-top: 0;
+        }
+    }
+
+    &__selection-open {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        margin: 0;
+        padding: 12px 24px;
+        border: 1px solid rgb(255 255 255 / 45%);
+        border-radius: 9px;
+        background: rgb(255 255 255 / 15%);
+        color: #fff;
+        font-family: var(--font-family-heading);
+        font-size: 14px;
+        font-weight: 800;
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+        transition:
+            background var(--transition-fast),
+            transform var(--transition-fast),
+            box-shadow var(--transition-fast);
+
+        &:hover:not(:disabled) {
+            background: rgb(255 255 255 / 25%);
+            box-shadow: 0 8px 24px rgb(3 26 65 / 20%);
+            transform: translateY(-2px);
+        }
+
+        &:focus-visible {
+            outline: 3px solid rgb(255 255 255 / 70%);
+            outline-offset: 4px;
+        }
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
     }
 
@@ -603,6 +651,22 @@
             color: var(--color-text-secondary);
             font-size: 14px;
             line-height: 1.8;
+        }
+    }
+    @media (max-width: 640px) {
+        padding: 20px 14px 64px;
+
+        &__hero {
+            padding: 36px 24px;
+        }
+
+        &__hero-actions {
+            align-items: stretch;
+            flex-direction: column;
+
+            > * {
+                width: 100%;
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { registrationsApi } from '../../../shared/api/eventsApi.js';
+import { registrationsApi } from '../../../../shared/api/eventsApi.js';
 import './RegisterButton.scss';
 
 export default function RegisterButton({ eventId, registered, onRegistrationChange }) {

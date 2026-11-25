@@ -131,6 +131,19 @@ export const eventsApi = {
         return remove(`/schedule/${eventId}/${scheduleItemId}`);
     },
 
+    // Program selections
+    getMySelections(eventId) {
+        return request(`/events/${eventId}/selections`);
+    },
+
+    selectScheduleItem(eventId, scheduleItemId) {
+        return post(`/events/${eventId}/selections/${scheduleItemId}`);
+    },
+
+    unselectScheduleItem(eventId, scheduleItemId) {
+        return remove(`/events/${eventId}/selections/${scheduleItemId}`);
+    },
+
     async getLocationPlaces() {
         const locations = await request('/locations');
         if (!Array.isArray(locations)) return [];

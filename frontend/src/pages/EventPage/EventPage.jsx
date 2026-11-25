@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Clock, MapPin, CalendarDays } from 'lucide-react';
 import { useParams, useOutletContext } from 'react-router-dom';
-import RegisterButton from './feature/RegisterButton.jsx';
+import RegisterButton from './components/RegisterButton/RegisterButton.jsx';
+import Selection from './components/Selection/Selection.jsx';
 import { eventsApi } from '../../shared/api/eventsApi.js';
 import './EventPage.scss';
 
@@ -77,6 +78,7 @@ function buildSlots(event) {
             if (!entry) {
                 entry = {
                     key,
+                    scheduleItemId: slot.scheduleItemId ?? null,
                     itemDate: slot.itemDate,
                     startTime: slot.startTime,
                     endTime: slot.endTime,
@@ -96,6 +98,8 @@ function buildSlots(event) {
         });
     });
 
+    // Общие пункты расписания только отображаются.
+    // Выбирать их нельзя.
     Object.values(event.commonScheduleByDate || {}).forEach((items) => {
         (items || []).forEach((item) => {
             const key = `c:${item.commonItemId}`;
@@ -103,6 +107,7 @@ function buildSlots(event) {
             if (!byKey.has(key)) {
                 byKey.set(key, {
                     key,
+                    scheduleItemId: null,
                     itemDate: item.itemDate,
                     startTime: item.startTime,
                     endTime: item.endTime,
@@ -132,14 +137,25 @@ function buildSlots(event) {
 export default function EventPage() {
     const { id } = useParams();
 
-    // Статус регистрации приходит из MainLayout
-    const { registered, setRegistered } = useOutletContext();
+    // Данные пользователя и регистрации приходят из MainLayout.
+    const { registered, setRegistered, user } = useOutletContext();
+
+    // Только обычные пользователи могут регистрироваться.
+    const isUser = user?.role === 'user';
 
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeDate, setActiveDate] = useState('');
 
+    // Выбранные пункты расписания.
+    const [selectedItems, setSelectedItems] = useState([]);
+    const [selectionsLoading, setSelectionsLoading] = useState(false);
+
+    // Состояние модального окна.
+    const [selectionModalOpen, setSelectionModalOpen] = useState(false);
+
+    // Загрузка мероприятия.
     useEffect(() => {
         let active = true;
 
@@ -171,7 +187,47 @@ export default function EventPage() {
         };
     }, [id]);
 
+    // Загрузка ранее сохранённых выборов участника.
+    useEffect(() => {
+        let active = true;
+
+        async function loadSelections() {
+            if (!isUser || !registered) {
+                setSelectedItems([]);
+                setSelectionsLoading(false);
+                setSelectionModalOpen(false);
+                return;
+            }
+
+            setSelectionsLoading(true);
+
+            try {
+                const data = await eventsApi.getMySelections(id);
+
+                if (active) {
+                    setSelectedItems(Array.isArray(data) ? data.map((item) => Number(item.scheduleItemId)) : []);
+                }
+            } catch (err) {
+                if (active) {
+                    console.error('Ошибка загрузки выбранных пунктов:', err);
+                }
+            } finally {
+                if (active) {
+                    setSelectionsLoading(false);
+                }
+            }
+        }
+
+        loadSelections();
+
+        return () => {
+            active = false;
+        };
+    }, [id, registered, isUser]);
+
     const slots = useMemo(() => buildSlots(event), [event]);
+
+    const selectableSlots = useMemo(() => slots.filter((slot) => slot.scheduleItemId != null), [slots]);
 
     const dates = useMemo(() => {
         const dateSet = new Set();
@@ -219,7 +275,18 @@ export default function EventPage() {
 
                 {event.description && <p>{event.description}</p>}
 
-                <RegisterButton key={event.eventId} eventId={event.eventId ?? id} registered={registered} onRegistrationChange={setRegistered} />
+                {/* Кнопки доступны только пользователям с ролью user */}
+                {isUser && (
+                    <div className="public-event__hero-actions">
+                        <RegisterButton key={event.eventId} eventId={event.eventId ?? id} registered={registered} onRegistrationChange={setRegistered} />
+
+                        {registered && (
+                            <button type="button" className="public-event__selection-open" onClick={() => setSelectionModalOpen(true)} disabled={selectionsLoading}>
+                                {selectionsLoading ? 'Загружаем выбор...' : 'Выбрать пункты программы'}
+                            </button>
+                        )}
+                    </div>
+                )}
             </header>
 
             {dates.length > 0 && (
@@ -291,6 +358,11 @@ export default function EventPage() {
                 <section className="public-event__empty">
                     <h2>Программа ещё формируется</h2>
                 </section>
+            )}
+
+            {/* Модалка доступна только зарегистрированному пользователю */}
+            {selectionModalOpen && registered && isUser && (
+                <Selection eventId={id} slots={selectableSlots} selectedItems={selectedItems} onClose={() => setSelectionModalOpen(false)} onSaved={setSelectedItems} />
             )}
         </main>
     );
