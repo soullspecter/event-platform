@@ -1,11 +1,13 @@
+
 META_SCHEMA = {
     "type": "object",
     "properties": {
         "title": {"type": ["string", "null"]},
         "startDate": {"type": ["string", "null"]},
         "endDate": {"type": ["string", "null"]},
+        "description": {"type": ["string", "null"]},
     },
-    "required": ["title", "startDate", "endDate"],
+    "required": ["title", "startDate", "endDate", "description"],
 }
 
 
@@ -17,16 +19,16 @@ PROGRAMS_LIST_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "tempId": {"type": "string"},
                     "name": {"type": "string"},
                     "description": {"type": "string"},
                 },
-                "required": ["tempId", "name", "description"],
+                "required": ["name", "description"],
             },
         }
     },
     "required": ["programs"],
 }
+
 
 SCHEDULE_SCHEMA = {
     "type": "object",
@@ -37,9 +39,13 @@ SCHEDULE_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "itemDate": {"type": "string"},
-                    "startTime": {"type": "string"},
-                    "endTime": {"type": "string"},
-                    "name": {"type": "string"},
+                    "startTime": {"type": ["string", "null"]},
+                    "endTime": {"type": ["string", "null"]},
+                    "names": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                    },
                     "location": {
                         "type": ["object", "null"],
                         "properties": {
@@ -50,12 +56,19 @@ SCHEDULE_SCHEMA = {
                         "required": ["name", "address", "place"],
                     },
                 },
-                "required": ["itemDate", "startTime", "endTime", "name", "location"],
+                "required": [
+                    "itemDate",
+                    "startTime",
+                    "endTime",
+                    "names",
+                    "location",
+                ],
             },
         }
     },
     "required": ["schedule"],
 }
+
 
 COMMON_SCHEDULE_SCHEMA = {
     "type": "object",
@@ -66,8 +79,8 @@ COMMON_SCHEDULE_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "itemDate": {"type": "string"},
-                    "startTime": {"type": "string"},
-                    "endTime": {"type": "string"},
+                    "startTime": {"type": ["string", "null"]},
+                    "endTime": {"type": ["string", "null"]},
                     "name": {"type": "string"},
                     "location": {
                         "type": ["object", "null"],
@@ -79,7 +92,13 @@ COMMON_SCHEDULE_SCHEMA = {
                         "required": ["name", "address", "place"],
                     },
                 },
-                "required": ["itemDate", "startTime", "endTime", "name", "location"],
+                "required": [
+                    "itemDate",
+                    "startTime",
+                    "endTime",
+                    "name",
+                    "location",
+                ],
             },
         }
     },

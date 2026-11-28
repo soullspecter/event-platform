@@ -44,13 +44,25 @@ function normalizeLocation(item) {
 
 export function normalizeProgramSlot(slot) {
     const source = slot?.scheduleItem ?? slot ?? {};
+
+    const rawNames = source.names ?? source.scheduleItemNames ?? source.schedule_item_names ?? (source.name ? [source.name] : []);
+
+    const names = Array.isArray(rawNames)
+        ? rawNames
+              .map((item) => {
+                  if (typeof item === 'string') return item;
+                  return item?.name ?? item?.activityName ?? '';
+              })
+              .filter(Boolean)
+        : [];
+
     return {
         clientId: createClientId('slot'),
-        scheduleItemId: source.scheduleItemId ?? null,
-        name: source.name ?? '',
-        itemDate: dateOnly(source.itemDate),
-        startTime: timeOnly(source.startTime),
-        endTime: timeOnly(source.endTime),
+        scheduleItemId: source.scheduleItemId ?? source.schedule_item_id ?? null,
+        names: names.length ? names : [''],
+        itemDate: dateOnly(source.itemDate ?? source.item_date),
+        startTime: timeOnly(source.startTime ?? source.start_time),
+        endTime: timeOnly(source.endTime ?? source.end_time),
         ...normalizeLocation(source),
     };
 }
@@ -59,10 +71,11 @@ export function normalizePrograms(rawPrograms) {
     if (!Array.isArray(rawPrograms)) return [];
 
     return rawPrograms.map((program) => {
-        const rawSchedule = program?.schedule ?? program?.programSchedules ?? [];
+        const rawSchedule = program?.schedule ?? program?.programSchedules ?? program?.program_schedule ?? [];
+
         return {
             clientId: createClientId('program'),
-            programId: program?.programId ?? null,
+            programId: program?.programId ?? program?.program_id ?? null,
             name: program?.name ?? '',
             description: program?.description ?? '',
             schedule: rawSchedule.map(normalizeProgramSlot),

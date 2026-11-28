@@ -1,13 +1,14 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsOptional, IsString, Matches, MaxLength, ValidateIf, ValidateNested } from 'class-validator';
+import { IsArray, IsDateString, IsOptional, IsString, Matches, MaxLength, ValidateIf, ValidateNested } from 'class-validator';
 
 import { SaveLocationPlaceDto } from '../../location-places/dto/save-location-place.dto';
 
 export class SaveScheduleItemDto {
     @IsOptional()
-    @IsString()
-    @MaxLength(255)
-    name?: string | null;
+    @IsArray()
+    @IsString({ each: true })
+    @MaxLength(255, { each: true })
+    names?: string[];
 
     @IsOptional()
     @ValidateIf((_, value) => value !== null)

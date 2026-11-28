@@ -1,3 +1,4 @@
+
 import shutil
 import tempfile
 from pathlib import Path
@@ -7,16 +8,13 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from config.settings import INPUT_DIR, RAW_DIR, OUTPUT_DIR
-from config.table_settings import OUTPUT_TABLES_DIR
 from src.converter import process_conversion
 from src.normalizer import process_normalization
 from src.exporter import process_markdown_export
 from src.table_parser.column_filter import process_column_filter
 
-
 from gigachat_test.api_client import create_event_draft, EventsApiError
-from gigachat_test.run_test import run_one as gigachat_run_one
+from gigachat_test.run_test import extract_event
 
 load_dotenv()
 
@@ -24,35 +22,44 @@ app = FastAPI(title="Event Builder API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # адреса вашего фронта
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
+def send_to_events_api(payload):
+    """Передаёт готовый JSON в NestJS без изменений."""
+    return create_event_draft(payload)
+
+
 @app.post("/drafts/from-json")
 def drafts_from_json(payload: dict):
-    """Принимает готовый JSON черновика и отправляет в NestJS."""
     try:
-        result = create_event_draft(payload)
+        result = send_to_events_api(payload)
+        return JSONResponse(content=result, status_code=201)
     except EventsApiError as e:
         raise HTTPException(status_code=502, detail=str(e))
-    return JSONResponse(content=result, status_code=201)
 
 
 @app.post("/drafts/from-document")
 async def drafts_from_document(file: UploadFile = File(...)):
-    """Принимает .doc/.docx/.md, прогоняет пайплайн и отправляет в NestJS."""
     suffix = Path(file.filename or "").suffix.lower()
+
     if suffix not in (".doc", ".docx", ".md"):
-        raise HTTPException(status_code=400, detail="Поддерживаются .doc, .docx, .md")
+        raise HTTPException(
+            status_code=400,
+            detail="Поддерживаются .doc, .docx, .md",
+        )
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="event-builder-"))
+
     tmp_input = tmp_dir / "input"
     tmp_raw = tmp_dir / "raw_converted"
     tmp_output = tmp_dir / "output"
@@ -61,6 +68,7 @@ async def drafts_from_document(file: UploadFile = File(...)):
 
     try:
         tmp_input.mkdir()
+
         uploaded = tmp_input / (file.filename or f"upload{suffix}")
         uploaded.write_bytes(await file.read())
 
@@ -74,17 +82,22 @@ async def drafts_from_document(file: UploadFile = File(...)):
             process_markdown_export(tmp_output, tmp_md)
 
         md_files = sorted(tmp_md.glob("*.md"))
+
         if not md_files:
-            raise HTTPException(status_code=500, detail="Markdown не создан")
+            raise HTTPException(
+                status_code=500,
+                detail="Markdown не создан",
+            )
 
-        payload = gigachat_run_one(md_files[0], send_to_api=False)
+        markdown = md_files[0].read_text(encoding="utf-8")
+        payload = extract_event(markdown)
 
-        try:
-            result = create_event_draft(payload)
-        except EventsApiError as e:
-            raise HTTPException(status_code=502, detail=str(e))
+        result = send_to_events_api(payload)
 
         return JSONResponse(content=result, status_code=201)
+
+    except EventsApiError as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)

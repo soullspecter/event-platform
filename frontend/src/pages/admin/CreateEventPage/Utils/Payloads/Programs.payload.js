@@ -20,8 +20,10 @@ export function buildProgramsPayload(programs = []) {
         ...(program.programId ? { programId: Number(program.programId) } : {}),
         name: toTrimmedOrNull(program.name),
         description: toTrimmedOrNull(program.description),
+
         schedule: (program.schedule ?? []).map((slot) => ({
-            name: toTrimmedOrNull(slot.name),
+            names: (Array.isArray(slot.names) ? slot.names : slot.name ? [slot.name] : []).map(toTrimmedOrNull).filter(Boolean),
+
             itemDate: slot.itemDate || null,
             startTime: slot.startTime || null,
             endTime: slot.endTime || null,

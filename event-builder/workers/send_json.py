@@ -1,10 +1,4 @@
-"""
-Отправляет готовый JSON в FastAPI-обвязку (или напрямую в NestJS).
 
-Использование:
-    python -m workers.send_json data/json/foo.json
-    python -m workers.send_json                  # первый файл из data/json/
-"""
 import json
 import sys
 from pathlib import Path
@@ -21,6 +15,7 @@ FASTAPI_URL = "http://localhost:8000/drafts/from-json"
 
 def main():
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else None
+
     if path is None:
         files = sorted(JSON_DIR.glob("*.json"))
         if not files:
@@ -43,9 +38,13 @@ def main():
     print()
 
     try:
-        response = requests.post(FASTAPI_URL, json=payload, timeout=120)
+        response = requests.post(
+            FASTAPI_URL,
+            json=payload,
+            timeout=120,
+        )
     except requests.RequestException as e:
-        print(f"✗ Сетевая ошибка: {e}")
+        print(f"Сетевая ошибка: {e}")
         sys.exit(1)
 
     print(f"HTTP {response.status_code}")

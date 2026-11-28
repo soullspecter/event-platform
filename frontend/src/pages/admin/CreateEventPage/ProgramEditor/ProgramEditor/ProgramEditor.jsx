@@ -9,7 +9,7 @@ function createEmptySlot(date) {
     return {
         clientId: createClientId('slot'),
         scheduleItemId: null,
-        name: '',
+        names: [''],
         itemDate: date || '',
         startTime: '',
         endTime: '',
@@ -39,6 +39,15 @@ function createEmptyCommon(date) {
         locationPlaceId: null,
         manualLocation: null,
     };
+}
+
+function getSlotNames(slot) {
+    if (Array.isArray(slot.names)) {
+        return slot.names;
+    }
+
+    // Поддержка старых данных, где было одно поле name.
+    return slot.name ? [slot.name] : [];
 }
 
 function LocationEditor({ value, manualLocation, onChange, locations }) {
@@ -136,7 +145,6 @@ function LocationEditor({ value, manualLocation, onChange, locations }) {
 export default function ProgramEditor({ event, dates = [], selectedDate = '', programs = [], onProgramsChange, commonSchedule = [], onCommonScheduleChange, locations = [] }) {
     const [selectedId, setSelectedId] = useState(null);
     const [selectedType, setSelectedType] = useState('program');
-
     const [selectedCommonIds, setSelectedCommonIds] = useState([]);
 
     const selectedProgram = programs.find((program) => program.clientId === selectedId);
@@ -175,7 +183,7 @@ export default function ProgramEditor({ event, dates = [], selectedDate = '', pr
 
         setSelectedType('common');
         setSelectedId(selectedDate);
-        // Добавляем новый пункт к уже выбранным, не теряя остальные.
+
         setSelectedCommonIds((current) => (current.includes(item.clientId) ? current : [...current, item.clientId]));
     }
 
@@ -187,7 +195,51 @@ export default function ProgramEditor({ event, dates = [], selectedDate = '', pr
         if (!selectedProgram) return;
 
         updateProgram({
-            schedule: (selectedProgram.schedule ?? []).map((slot) => (slot.clientId === slotId ? { ...slot, ...changes } : slot)),
+            schedule: (selectedProgram.schedule ?? []).map((slot) => {
+                if (slot.clientId !== slotId) return slot;
+
+                // Убираем старое поле name и переводим его в names.
+                const updatedSlot = {
+                    ...slot,
+                    ...changes,
+                    names: changes.names ?? getSlotNames(slot),
+                };
+
+                delete updatedSlot.name;
+
+                return updatedSlot;
+            }),
+        });
+    }
+
+    function updateSlotName(slotId, nameIndex, value) {
+        const slot = selectedProgram?.schedule?.find((item) => item.clientId === slotId);
+
+        if (!slot) return;
+
+        const names = [...getSlotNames(slot)];
+        names[nameIndex] = value;
+
+        updateProgramSlot(slotId, { names });
+    }
+
+    function addSlotName(slotId) {
+        const slot = selectedProgram?.schedule?.find((item) => item.clientId === slotId);
+
+        if (!slot) return;
+
+        updateProgramSlot(slotId, {
+            names: [...getSlotNames(slot), ''],
+        });
+    }
+
+    function removeSlotName(slotId, nameIndex) {
+        const slot = selectedProgram?.schedule?.find((item) => item.clientId === slotId);
+
+        if (!slot) return;
+
+        updateProgramSlot(slotId, {
+            names: getSlotNames(slot).filter((_, index) => index !== nameIndex),
         });
     }
 
@@ -217,6 +269,7 @@ export default function ProgramEditor({ event, dates = [], selectedDate = '', pr
         if (!confirmed) return;
 
         onCommonScheduleChange((current) => current.filter((item) => item.clientId !== itemId));
+
         setSelectedCommonIds((current) => current.filter((id) => id !== itemId));
     }
 
@@ -252,7 +305,7 @@ export default function ProgramEditor({ event, dates = [], selectedDate = '', pr
     function selectCommon() {
         setSelectedType('common');
         setSelectedId(selectedDate);
-        // При выборе общего расписания показываем все пункты текущей даты.
+
         setSelectedCommonIds(commonForDate.map((item) => item.clientId));
     }
 
@@ -356,15 +409,31 @@ export default function ProgramEditor({ event, dates = [], selectedDate = '', pr
                                         </button>
                                     </div>
 
-                                    <div className="field">
-                                        <label>Название активности</label>
+                                    <div className="slot-card__names">
+                                        <div className="field">
+                                            <label>Названия активностей</label>
+                                        </div>
 
-                                        <input
-                                            maxLength={255}
-                                            value={slot.name ?? ''}
-                                            onChange={(e) => updateProgramSlot(slot.clientId, { name: e.target.value })}
-                                            placeholder="Например, Мастер-класс по ИИ"
-                                        />
+                                        {getSlotNames(slot).map((name, nameIndex) => (
+                                            <div className="slot-card__name-row" key={nameIndex}>
+                                                <input
+                                                    maxLength={255}
+                                                    value={name}
+                                                    onChange={(e) => updateSlotName(slot.clientId, nameIndex, e.target.value)}
+                                                    placeholder={`Название ${nameIndex + 1}`}
+                                                    aria-label={`Название активности ${nameIndex + 1}`}
+                                                />
+
+                                                <button type="button" aria-label={`Удалить название ${nameIndex + 1}`} onClick={() => removeSlotName(slot.clientId, nameIndex)}>
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        <button type="button" className="program-edit-form__add-slot" onClick={() => addSlotName(slot.clientId)}>
+                                            <Plus size={16} />
+                                            Добавить название
+                                        </button>
                                     </div>
 
                                     <div className="field-row field-row--2">

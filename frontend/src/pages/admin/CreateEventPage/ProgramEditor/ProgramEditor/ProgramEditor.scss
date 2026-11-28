@@ -362,6 +362,112 @@
             color: var(--color-text-secondary);
         }
     }
+
+    /* Несколько названий в одном слоте */
+
+    &__names {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    &__name-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+
+        input {
+            display: block;
+            flex: 1 1 auto;
+            width: 100%;
+            min-width: 0;
+            min-height: 44px;
+            padding: 11px 13px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-family: var(--font-family-body);
+            font-size: var(--font-size-sm);
+            outline: none;
+            transition:
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+
+            &:hover {
+                border-color: var(--color-lavender);
+            }
+
+            &:focus {
+                border-color: var(--color-primary);
+                box-shadow: 0 0 0 3px rgb(10 104 216 / 12%);
+            }
+
+            &::placeholder {
+                color: var(--color-text-secondary);
+                opacity: 0.65;
+            }
+
+            &:disabled {
+                background: var(--color-background);
+                cursor: not-allowed;
+                opacity: 0.7;
+            }
+        }
+
+        button {
+            display: grid;
+            flex: 0 0 40px;
+            width: 40px;
+            height: 44px;
+            place-items: center;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-surface);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition:
+                color var(--transition-fast),
+                background var(--transition-fast),
+                border-color var(--transition-fast);
+
+            &:hover {
+                border-color: var(--color-danger);
+                background: rgb(217 76 105 / 7%);
+                color: var(--color-danger);
+            }
+        }
+    }
+
+    &__add-name {
+        display: inline-flex;
+        align-items: center;
+        align-self: flex-start;
+        justify-content: center;
+        gap: 8px;
+        min-height: 38px;
+        padding: 8px 12px;
+        border: 1px dashed var(--color-primary);
+        border-radius: var(--radius-sm);
+        background: var(--color-primary-soft);
+        color: var(--color-primary);
+        font-family: var(--font-family-body);
+        font-size: var(--font-size-xs);
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast);
+
+        &:hover {
+            border-color: var(--color-primary-hover);
+            background: var(--color-sky-soft);
+        }
+    }
 }
 
 /* Редактор площадки */
@@ -437,7 +543,7 @@
     }
 }
 
-/* Поля только внутри ProgramEditor */
+/* Поля формы только внутри ProgramEditor */
 
 .program-editor-split {
     .field {
@@ -586,6 +692,15 @@
 
     .slot-card {
         padding: 14px;
+
+        &__name-row {
+            gap: 7px;
+
+            button {
+                flex-basis: 38px;
+                width: 38px;
+            }
+        }
     }
 
     .program-editor-split {
@@ -620,24 +735,19 @@
         min-width: 0;
         min-height: 46px;
         padding: 11px 42px 11px 14px;
-
         border: 1px solid var(--color-border);
         border-radius: var(--radius-sm);
-
         background-color: var(--color-surface);
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%230a68d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+
         background-repeat: no-repeat;
         background-position: right 14px center;
         background-size: 18px;
-
         color: var(--color-text);
         font-family: var(--font-family-body);
         font-size: var(--font-size-sm);
         font-weight: 500;
-
         cursor: pointer;
         outline: none;
-
         transition:
             border-color var(--transition-fast),
             box-shadow var(--transition-fast),

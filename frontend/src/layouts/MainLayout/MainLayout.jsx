@@ -20,7 +20,9 @@ export default function MainLayout() {
     });
 
     const eventMatch = useMatch('/events/:id');
-    const eventId = eventMatch?.params.id ?? null;
+    const matchedEventId = eventMatch?.params.id ?? null;
+
+    const eventId = matchedEventId === 'create' ? null : matchedEventId;
 
     const isAdmin = user?.roles?.includes('admin');
 

@@ -2,6 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColum
 
 import { LocationPlace } from '../../location-places/entity/location-place.entity';
 import { ProgramSchedule } from '../../program-schedule/entity/program-schedule.entity';
+import { ScheduleItemName } from './schedule-item-name.entity';
 
 @Entity({ name: 'schedule_items' })
 export class ScheduleItem {
@@ -15,9 +16,6 @@ export class ScheduleItem {
     @JoinColumn({ name: 'location_place_id', referencedColumnName: 'locationPlaceId' })
     locationPlace: LocationPlace | null;
 
-    @Column({ name: 'name', type: 'varchar', length: 255, nullable: true })
-    name: string | null;
-
     @Column({ name: 'item_date', type: 'date', nullable: true })
     itemDate: string | null;
 
@@ -26,6 +24,9 @@ export class ScheduleItem {
 
     @Column({ name: 'end_time', type: 'time', nullable: true })
     endTime: string | null;
+
+    @OneToMany(() => ScheduleItemName, (itemName) => itemName.scheduleItem)
+    itemNames: ScheduleItemName[];
 
     @OneToMany(() => ProgramSchedule, (ps) => ps.scheduleItem)
     programSchedules: ProgramSchedule[];

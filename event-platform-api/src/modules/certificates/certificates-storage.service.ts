@@ -19,9 +19,9 @@ export class CertificatesStorageService {
         const ext = (fileName.split('.').pop() || '').toLowerCase();
         const allowed = category === 'template' ? ['pdf'] : ['ttf', 'otf'];
         if (!allowed.includes(ext)) {
-            throw new BadRequestException(category === 'template'
-                ? 'В хранилище шаблонов принимается только PDF. JPG/PNG сначала преобразуются в PDF в редакторе.'
-                : 'Поддерживаются только TTF и OTF');
+            throw new BadRequestException(
+                category === 'template' ? 'В хранилище шаблонов принимается только PDF. JPG/PNG сначала преобразуются в PDF в редакторе.' : 'Поддерживаются только TTF и OTF',
+            );
         }
 
         const supabaseUrl = this.config.get<string>('SUPABASE_URL');
@@ -49,7 +49,7 @@ export class CertificatesStorageService {
 
         if (!response.ok) {
             const detail = await response.text();
-            throw new InternalServerErrorException(`Не удалось загрузить файл в Supabase Storage: ${detail}`);
+            throw new InternalServerErrorException(`Не удалось загрузить файл в хранилище: ${detail}`);
         }
 
         const publicUrl = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${encodeURIComponent(bucket)}/${objectPath}`;
